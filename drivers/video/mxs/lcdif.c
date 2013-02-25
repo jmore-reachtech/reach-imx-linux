@@ -57,6 +57,7 @@ void mxs_init_lcdif(void)
 	__raw_writel(BM_LCDIF_VDCTRL0_VSYNC_OEB,
 		     REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0_SET);
 
+#ifndef CONFIG_MACH_MX28_CANBY
 	/* Reset display */
 	__raw_writel(BM_LCDIF_CTRL1_RESET,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
@@ -64,6 +65,8 @@ void mxs_init_lcdif(void)
 	__raw_writel(BM_LCDIF_CTRL1_RESET,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);
 	udelay(10);
+#endif
+
 }
 EXPORT_SYMBOL(mxs_init_lcdif);
 

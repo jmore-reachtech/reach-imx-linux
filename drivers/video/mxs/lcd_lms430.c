@@ -52,10 +52,13 @@
 static struct mxs_platform_bl_data bl_data;
 static struct clk *lcd_clk;
 
+static int panel_init_complete = 0;
+
 static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		      struct mxs_platform_fb_entry *pentry)
 {
 	int ret = 0;
+
 	lcd_clk = clk_get(NULL, "dis_lcdif");
 	if (IS_ERR(lcd_clk)) {
 		ret = PTR_ERR(lcd_clk);
@@ -74,6 +77,8 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		goto out;
 	}
 
+/* this is from the MX28EVK */
+#ifndef CONFIG_MACH_MX28_CANBY
 	/*
 	 * Make sure we do a high-to-low transition to reset the panel.
 	 * First make it low for 100 msec, hi for 10 msec, low for 10 msec,
@@ -90,6 +95,7 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 	 * Then we'll wait 1 mSec afterwards.
 	 */
 	mdelay(10);
+#endif
 	__raw_writel(BM_LCDIF_CTRL1_RESET, REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);	/* high */
 	mdelay(1);
 
@@ -97,6 +103,8 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 			   DOTCLK_V_WAIT_CNT, DOTCLK_V_ACTIVE,
 			   DOTCLK_H_PULSE_WIDTH, DOTCLK_H_PERIOD,
 			   DOTCLK_H_WAIT_CNT, DOTCLK_H_ACTIVE, 0);
+
+	panel_init_complete = 1;
 
 	ret = mxs_lcdif_dma_init(dev, phys, memsize);
 	if (ret)
@@ -126,6 +134,7 @@ static void release_panel(struct device *dev,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
 }
 
+/* disbales the run state of the LCD controller - no data*/
 static int blank_panel(int blank)
 {
 	int ret = 0, count;
@@ -135,6 +144,9 @@ static int blank_panel(int blank)
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
+		if(panel_init_complete) {
+			return ret;
+		}
 		__raw_writel(BM_LCDIF_CTRL_BYPASS_COUNT,
 			     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
 		for (count = 10000; count; count--) {
