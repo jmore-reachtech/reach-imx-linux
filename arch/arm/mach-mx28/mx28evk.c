@@ -85,10 +85,12 @@ static struct mxs_pwm_led  mx28evk_led_pwm[2] = {
 	[0] = {
 		.name = "led-pwm0",
 		.pwm = 0,
+		.dev.brightness = 127,
 		},
 	[1] = {
 		.name = "led-pwm1",
 		.pwm = 1,
+		.dev.brightness = 255,
 		},
 };
 

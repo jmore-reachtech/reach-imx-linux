@@ -115,7 +115,7 @@ static int __devinit mxs_pwm_led_probe(struct platform_device *pdev)
 		}
 		led = &(leds.leds[i].dev);
 		led->name = leds.leds[i].name;
-		led->brightness = LED_HALF;
+		led->brightness = led->brightness;
 		led->flags = 0;
 		led->brightness_set = mxs_pwm_led_brightness_set;
 		led->default_trigger = 0;
@@ -131,7 +131,7 @@ static int __devinit mxs_pwm_led_probe(struct platform_device *pdev)
 		leds_in_use++;
 
 		/* Set default brightness */
-		mxs_pwm_led_brightness_set(led, LED_HALF);
+		mxs_pwm_led_brightness_set(led, led->brightness);
 	}
 
 	if (leds_in_use == 0) {

@@ -56,7 +56,7 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		      struct mxs_platform_fb_entry *pentry)
 {
 	int ret = 0;
-	lcd_clk = clk_get(NULL, "lcdif");
+	lcd_clk = clk_get(NULL, "dis_lcdif");
 	if (IS_ERR(lcd_clk)) {
 		ret = PTR_ERR(lcd_clk);
 		goto out;
@@ -265,10 +265,12 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 		scaled_int += rem * (values[intensity / 10 + 1] -
 				     values[intensity / 10]) / 10;
 	}
+	// max scaled int is 100, period is 399 so multiply by 4
+	scaled_int *= 4;
 	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(scaled_int) |
 		     BF_PWM_ACTIVEn_ACTIVE(0),
 		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
-	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
+	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 256 */
 		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
 		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
 		     BF_PWM_PERIODn_PERIOD(399),
@@ -278,7 +280,7 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 
 static struct mxs_platform_bl_data bl_data = {
 	.bl_max_intensity = 100,
-	.bl_default_intensity = 50,
+	.bl_default_intensity = 100,
 	.bl_cons_intensity = 50,
 	.init_bl = init_bl,
 	.free_bl = free_bl,
