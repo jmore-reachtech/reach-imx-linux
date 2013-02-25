@@ -127,7 +127,7 @@ static struct pin_desc mx28canby_fixed_pins[] = {
 	 .pullup	= 0,
 	 .drive 	= 1,
 	 .pull 		= 0,
-	 .data		= 0,
+	 .data		= 1,
 	 .output	= 1,
 	 },
 
