@@ -281,7 +281,7 @@ static int set_bl_intensity(struct mxs_platform_bl_data *data,
 
 static struct mxs_platform_bl_data bl_data = {
 	.bl_max_intensity = 100,
-	.bl_default_intensity = 50,
+	.bl_default_intensity = 100,
 	.bl_cons_intensity = 50,
 	.init_bl = init_bl,
 	.free_bl = free_bl,
