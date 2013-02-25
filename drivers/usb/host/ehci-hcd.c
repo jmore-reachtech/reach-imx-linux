@@ -268,6 +268,9 @@ static int ehci_reset (struct ehci_hcd *ehci)
 	if (ehci->debug)
 		dbgp_external_startup();
 
+	ehci_writel(ehci, TXFIFO_DEFAULT,
+		(u32 __iomem *)(((u8 *)ehci->regs) + TXFILLTUNING));
+
 	return retval;
 }
 

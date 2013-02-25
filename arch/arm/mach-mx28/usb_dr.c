@@ -467,7 +467,7 @@ static int __init usb_dr_init(void)
 
 	pr_debug("%s: \n", __func__);
 	dr_utmi_config.change_ahb_burst = 1;
-	dr_utmi_config.ahb_burst_mode = 0;
+	dr_utmi_config.ahb_burst_mode = 6;
 
 #ifdef CONFIG_USB_OTG
 	dr_utmi_config.operating_mode = FSL_USB2_DR_OTG;

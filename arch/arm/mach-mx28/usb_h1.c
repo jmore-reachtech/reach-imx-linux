@@ -202,6 +202,8 @@ static struct fsl_usb2_platform_data usbh1_config = {
 	.phy_lowpower_suspend = _phy_lowpower_suspend,
 	.is_wakeup_event = _is_usbh1_wakeup,
 	.phy_regs = USBPHY1_PHYS_ADDR,
+	.change_ahb_burst = 1,
+	.ahb_burst_mode = 6,
 };
 
 static struct fsl_usb2_wakeup_platform_data usbh1_wakeup_config = {

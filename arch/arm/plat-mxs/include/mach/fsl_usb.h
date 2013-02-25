@@ -65,6 +65,15 @@ fsl_platform_set_vbus_power(struct fsl_usb2_platform_data *pdata, int on)
 /* Set USB AHB burst length for host */
 static inline void fsl_platform_set_ahb_burst(struct usb_hcd *hcd)
 {
+	struct fsl_usb2_platform_data *pdata;
+	unsigned int temp;
+
+	pdata = hcd->self.controller->platform_data;
+	if (pdata->change_ahb_burst) {
+		temp = readl(hcd->regs + FSL_SOC_USB_SBUSCFG);
+		writel((temp & (~(0x7))) | pdata->ahb_burst_mode,
+		hcd->regs + FSL_SOC_USB_SBUSCFG);
+	}
 }
 
 void fsl_phy_usb_utmi_init(struct fsl_xcvr_ops *this);
