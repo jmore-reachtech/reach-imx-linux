@@ -410,6 +410,21 @@ static unsigned long ref_pix_get_rate(struct clk *clk)
 	return ref_clk_get_rate(clk->parent->get_rate(clk->parent), reg);
 }
 
+static unsigned long ref_pix_clk_set_div(struct clk *clk)
+{
+	unsigned long reg;
+	reg = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1);
+	reg &= ~BM_CLKCTRL_FRAC1_PIXFRAC;
+	reg |= 0x16;
+	__raw_writel(reg, CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1);
+
+
+	reg = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1);
+	printk("%s frac1=0x%08X \n",__func__,reg);
+
+	return 0;
+}
+
 static struct clk ref_pix_clk = {
 	.parent = &pll_clk[0],
 	.get_rate = ref_pix_get_rate,
@@ -1150,7 +1165,10 @@ static int lcdif_set_rate(struct clk *clk, unsigned long rate)
 
 	reg_val = __raw_readl(clk->scale_reg);
 	reg_val &= ~(BM_CLKCTRL_DIS_LCDIF_DIV | BM_CLKCTRL_DIS_LCDIF_CLKGATE);
-	reg_val |= (1 << BP_CLKCTRL_DIS_LCDIF_DIV) & BM_CLKCTRL_DIS_LCDIF_DIV;
+	/*
+	 * lcdif divider - 9.81818 MHz = ( 480 MHz * (18/22)) / 40
+	 */
+	reg_val |= (40 << BP_CLKCTRL_DIS_LCDIF_DIV) & BM_CLKCTRL_DIS_LCDIF_DIV;
 	__raw_writel(reg_val, clk->scale_reg);
 	if (clk->busy_reg) {
 		int i;
@@ -1161,9 +1179,15 @@ static int lcdif_set_rate(struct clk *clk, unsigned long rate)
 			return -ETIMEDOUT;
 	}
 
+	reg_val = __raw_readl(clk->scale_reg);
+	printk("%s scale_reg=0x%08X \n",__func__,reg_val);
+
 	reg_val = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ);
-	reg_val |= BM_CLKCTRL_CLKSEQ_BYPASS_DIS_LCDIF;
+	reg_val &= ~BM_CLKCTRL_CLKSEQ_BYPASS_DIS_LCDIF;
 	__raw_writel(reg_val, CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ);
+
+	reg_val = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ);
+	printk("%s clk_seq=0x%08X \n",__func__,reg_val);
 
 	return 0;
 }
@@ -1199,7 +1223,7 @@ static struct clk dis_lcdif_clk = {
 	.busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_DIS_LCDIF,
 	.busy_bits = 29,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_DIS_LCDIF,
-	.enable_bits = 31,
+	.enable_bits = BM_CLKCTRL_DIS_LCDIF_CLKGATE,
 	.bypass_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ,
 	.bypass_bits = 14,
 	.get_rate = lcdif_get_rate,
@@ -1815,4 +1839,8 @@ void __init mx28_clock_init(void)
 
 	clk_en_public_h_asm_ctrl(mx28_enable_h_autoslow,
 		mx28_set_hbus_autoslow_flags);
+
+	/* set lcd_clk parnet clk to ref_pix */
+	lcdif_set_parent(&dis_lcdif_clk,&ref_pix_clk);
+	ref_pix_clk_set_div(&ref_pix_clk);
 }
