@@ -804,9 +804,11 @@ static int h_set_rate(struct clk *clk, unsigned long rate)
 	if ((div == 0) || (div >= 0x20))
 		return -EINVAL;
 
+	/* comment this out to handle OTP changes
 	if (root_rate % round_rate)
 			return -EINVAL;
-
+	*/
+	
 	if ((root_rate < rate) && (root_rate == 64000000))
 		div = 3;
 

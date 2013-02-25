@@ -194,6 +194,10 @@ static int __devinit fsl_otp_probe(struct platform_device *pdev)
 	if (retval)
 		goto error;
 
+#if (defined(CONFIG_ARCH_MX23) || defined(CONFIG_ARCH_MX28))
+	otp_read_prepare();
+	otp_read_post();
+#endif
 	mutex_init(&otp_mutex);
 	return 0;
 error:
