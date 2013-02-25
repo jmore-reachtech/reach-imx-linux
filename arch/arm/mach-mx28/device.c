@@ -866,9 +866,15 @@ static void __init mx28_init_fec(void)
 		}
 
 		pfec = (struct fec_platform_data *)pdev->dev.platform_data;
+#if defined(CONFIG_MACH_MX28_CANBY)
+		pfec->mac[0] = 0x30;
+		pfec->mac[1] = 0x68;
+		pfec->mac[2] = 0x8C;
+#else
 		pfec->mac[0] = 0x00;
 		pfec->mac[1] = 0x04;
 		pfec->mac[2] = (val >> 24) & 0xFF;
+#endif
 		pfec->mac[3] = (val >> 16) & 0xFF;
 		pfec->mac[4] = (val >> 8) & 0xFF;
 		pfec->mac[5] = (val >> 0) & 0xFF;
