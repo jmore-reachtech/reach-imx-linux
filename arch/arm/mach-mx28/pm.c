@@ -43,7 +43,12 @@
 #include <mach/../../regs-icoll.h>
 #include "regs-dram.h"
 #include "mx28_pins.h"
+#if defined(CONFIG_MACH_MX28EVK)
 #include "mx28evk.h"
+#endif
+#if defined(CONFIG_MACH_MX28_CANBY)
+#include "mx28_canby.h"
+#endif
 
 #include "sleep.h"
 
@@ -82,7 +87,11 @@ static inline void do_standby(void)
 	unsigned long iram_phy_addr;
 	void *iram_virtual_addr;
 	int wakeupirq;
+	#if defined(CONFIG_MACH_MX28EVK)
 	mx28evk_enet_io_lowerpower_enter();
+	#else
+	mx28canby_enet_io_lowerpower_enter();
+	#endif
 	/*
 	 * 1) switch clock domains from PLL to 24MHz
 	 * 2) lower voltage (TODO)
@@ -159,7 +168,11 @@ static inline void do_standby(void)
 	clk_put(cpu_clk);
 
 	iram_free(iram_phy_addr, MAX_POWEROFF_CODE_SIZE);
+	#if defined(CONFIG_MACH_MX28EVK)
 	mx28evk_enet_io_lowerpower_exit();
+	#else
+	mx28canby_enet_io_lowerpower_exit();
+	#endif
 }
 
 static noinline void do_mem(void)

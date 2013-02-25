@@ -47,7 +47,12 @@
 
 #include "regs-digctl.h"
 #include "device.h"
+#if defined(CONFIG_MACH_MX28EVK)
 #include "mx28evk.h"
+#endif
+#if defined(CONFIG_MACH_MX28_CANBY)
+#include "mx28_canby.h"
+#endif
 #include "mx28_pins.h"
 
 #if defined(CONFIG_SERIAL_MXS_DUART) || \
@@ -421,7 +426,7 @@ static void mx28_init_gpmi_nfc(void)
 #endif
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
-#if defined(CONFIG_MACH_MX28EVK)
+#if defined(CONFIG_MACH_MX28EVK) || defined(CONFIG_MACH_MX28_CANBY)
 #define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
 #define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
 #define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
@@ -436,7 +441,11 @@ static int mxs_mmc_get_wp_ssp0(void)
 static int mxs_mmc_hw_init_ssp0(void)
 {
 	int ret = 0;
-
+	
+	#if defined(CONFIG_MACH_MX28_CANBY)
+	return 0;
+	#endif
+	
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC0_WP, "mmc0_wp");
 	if (ret)
@@ -498,6 +507,9 @@ static int mxs_mmc_get_wp_ssp1(void)
 static int mxs_mmc_hw_init_ssp1(void)
 {
 	int ret = 0;
+	#if defined(CONFIG_MACH_MX28_CANBY)
+	return 0;
+	#endif
 
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC1_WP, "mmc1_wp");
@@ -557,8 +569,7 @@ static struct mxs_mmc_platform_data mmc0_data = {
 	.get_wp		= mxs_mmc_get_wp_ssp0,
 	.cmd_pullup	= mxs_mmc_cmd_pullup_ssp0,
 	.setclock	= mxs_mmc_setclock_ssp0,
-	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA
-				| MMC_CAP_DATA_DDR,
+	.caps 		= MMC_CAP_4_BIT_DATA | MMC_CAP_DATA_DDR,
 	.min_clk	= 400000,
 	.max_clk	= 48000000,
 	.read_uA        = 50000,
@@ -793,6 +804,7 @@ static struct resource fec1_resource[] = {
 	},
 };
 
+#if defined(CONFIG_MACH_MX28EVK)
 extern int mx28evk_enet_gpio_init(void);
 static struct fec_platform_data fec_pdata0 = {
 	.phy = PHY_INTERFACE_MODE_RMII,
@@ -803,6 +815,17 @@ static struct fec_platform_data fec_pdata1 = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 	.init = mx28evk_enet_gpio_init,
 };
+#else
+extern int mx28canby_enet_gpio_init(void);
+static struct fec_platform_data fec_pdata0 = {
+	.phy = PHY_INTERFACE_MODE_RMII,
+	.init = mx28canby_enet_gpio_init,
+};
+static struct fec_platform_data fec_pdata1 = {
+	.phy = PHY_INTERFACE_MODE_RMII,
+	.init = mx28canby_enet_gpio_init,
+};
+#endif
 
 static void __init mx28_init_fec(void)
 {
@@ -890,10 +913,17 @@ static unsigned int switch_platform_hw[2] = {
 	(0x800FC000),
 };
 
+#if defined(CONFIG_MACH_MX28EVK)
 static struct fec_platform_data fec_enet = {
 	.phy = PHY_INTERFACE_MODE_RMII,
 	.init = mx28evk_enet_gpio_init,
 };
+#else
+static struct fec_platform_data fec_enet = {
+	.phy = PHY_INTERFACE_MODE_RMII,
+	.init = mx28canby_enet_gpio_init,
+};
+#endif
 
 static struct switch_platform_data l2switch_data = {
 	.id 		= 0,

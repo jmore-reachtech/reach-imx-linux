@@ -58,6 +58,10 @@ void fsl_phy_usb_utmi_uninit(struct fsl_xcvr_ops *this)
 void fsl_phy_set_power(struct fsl_xcvr_ops *this,
 			struct fsl_usb2_platform_data *pdata, int on)
 {
+	#if defined(CONFIG_MACH_MX28_CANBY)
+	return;
+	#endif
+	
 	/* USB_POWER_ENABLE_PIN have request at pin init*/
 	if (pdata->phy_regs != USBPHY1_PHYS_ADDR) {
 		pr_debug("%s: on is %d\n", __func__, on);
