@@ -99,8 +99,10 @@
 #define USER_LED_EN			(6*32 + 7)	/* GPIO_7_7 */
 #define USB_PWREN			(6*32 + 8)	/* GPIO_7_8 */
 #define NIRQ				(6*32 + 11)	/* GPIO7_11 */
-#define MX53_LOCO_MC34708_IRQ_REVA    (4*32 + 30)	/* GPIO5_30 */
-#define MX53_LOCO_MC34708_IRQ_REVB    (4*32 + 23)	/* GPIO5_23 */
+
+#define ISP_LS_RST			(4*32 + 22)	/* GPIO5_22 */
+#define ISP_LS_MODE1		(4*32 + 23)	/* GPIO5_23 */
+#define ISP_LS_MODE0		(4*32 + 24)	/* GPIO5_24 */
 
 #define MX53_OFFSET					(0x20000000)
 #define TZIC_WAKEUP0_OFFSET         (0x0E00)
@@ -268,6 +270,9 @@ static iomux_v3_cfg_t mx53_sellwood_pads[] = {
 	MX53_PAD_GPIO_5__GPIO1_5,
 	MX53_PAD_GPIO_16__GPIO7_11,
 	MX53_PAD_GPIO_8__GPIO1_8,
+	MX53_PAD_CSI0_DAT4__GPIO5_22,
+	MX53_PAD_CSI0_DAT5__GPIO5_23,
+	MX53_PAD_CSI0_DAT6__GPIO5_24,
 };
 
 static void sellwood_da9053_irq_wakeup_only_fixup(void)
