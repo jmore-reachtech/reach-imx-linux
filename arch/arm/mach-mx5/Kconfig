@@ -73,6 +73,13 @@ config MACH_MX53_LOCO
 	  Include support for MX53 LOCO platform. This includes specific
 	  configurations for the board and its peripherals.
 
+config MACH_MX53_SELLWOOD
+	bool "Support MX53 SELLWOOD platform"
+	select ARCH_MX53
+	help
+	  Include support for MX53 SELLWOOD platform. This includes specific
+	  configurations for the board and its peripherals.
+
 config MACH_MX50_ARM2
 	bool "Support MX50 Armadillo2 platform"
 	select ARCH_MX50
@@ -86,6 +93,21 @@ config MACH_MX50_RDP
 	help
 	  Include support for MX50 RDP platform. This includes specific
 	  configurations for the board and its peripherals.
+
+menu "Reach specific settings        "
+
+if MACH_MX53_SELLWOOD
+choice
+	prompt "Debug console UART"
+config MX53_SELLWOOD_DEBUG_UART0
+	bool "UART0"
+config MX53_SELLWOOD_DEBUG_UART1
+	bool "UART1"
+config MX53_SELLWOOD_DEBUG_UART2
+	bool "UART2"
+endchoice
+endif
+endmenu
 
 comment "MX5x Options:"
 
