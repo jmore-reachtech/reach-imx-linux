@@ -1147,6 +1147,7 @@ static int __devinit sii902x_probe(struct i2c_client *client,
 		dev_warn(&sii902x->client->dev, "Can not read edid\n");
 
 #if defined(CONFIG_MXC_IPU_V3) && defined(CONFIG_FB_MXC_SYNC_PANEL)
+	/* this will override the LVDS setting.  Just comment out for now
 	if (ret >= 0) {
 		int di = 0;
 		if (!strcmp(sii902x->fb_id, "DISP3 BG - DI1"))
@@ -1154,6 +1155,7 @@ static int __devinit sii902x_probe(struct i2c_client *client,
 		mxcfb_register_mode(di, edid_fbi.monspecs.modedb,
 				edid_fbi.monspecs.modedb_len, MXC_DISP_DDC_DEV);
 	}
+	*/
 #endif
 #if defined(CONFIG_FB_MXC_ELCDIF_FB)
 	if (ret >= 0)
