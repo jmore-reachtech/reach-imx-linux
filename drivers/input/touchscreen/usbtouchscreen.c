@@ -162,6 +162,7 @@ static const struct usb_device_id usbtouch_devices[] = {
 	{USB_DEVICE(0x0eef, 0x0002), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0002), .driver_info = DEVTYPE_EGALAX},
+	{USB_DEVICE(0x0eef, 0x73a4), .driver_info = DEVTYPE_EGALAX},
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_USB_PANJIT
@@ -288,11 +289,12 @@ static int e2i_read_data(struct usbtouch_usb *dev, unsigned char *pkt)
 
 static int egalax_read_data(struct usbtouch_usb *dev, unsigned char *pkt)
 {
-	if ((pkt[0] & EGALAX_PKT_TYPE_MASK) != EGALAX_PKT_TYPE_REPT)
+	if ((pkt[0] & EGALAX_PKT_TYPE_MASK) != EGALAX_PKT_TYPE_REPT) {
 		return 0;
-
-	dev->x = ((pkt[3] & 0x0F) << 7) | (pkt[4] & 0x7F);
-	dev->y = ((pkt[1] & 0x0F) << 7) | (pkt[2] & 0x7F);
+	}
+	
+	dev->y = ((pkt[2]) << 8) | (pkt[1]);
+	dev->x = ((pkt[4]) << 8) | (pkt[3]);
 	dev->touch = pkt[0] & 0x01;
 
 	return 1;
@@ -300,6 +302,7 @@ static int egalax_read_data(struct usbtouch_usb *dev, unsigned char *pkt)
 
 static int egalax_get_pkt_len(unsigned char *buf, int len)
 {
+	
 	switch (buf[0] & EGALAX_PKT_TYPE_MASK) {
 	case EGALAX_PKT_TYPE_REPT:
 		return 5;
