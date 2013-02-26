@@ -163,6 +163,8 @@ static const struct usb_device_id usbtouch_devices[] = {
 	{USB_DEVICE(0x1234, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0002), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x0eef, 0x73a4), .driver_info = DEVTYPE_EGALAX},
+	{USB_DEVICE(0x0eef, 0x7200), .driver_info = DEVTYPE_EGALAX},
+	{USB_DEVICE(0x0eef, 0x73ea), .driver_info = DEVTYPE_EGALAX},
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_USB_PANJIT
