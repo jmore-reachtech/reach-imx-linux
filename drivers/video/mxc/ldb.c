@@ -123,14 +123,6 @@ struct fb_videomode mxcfb_ldb_modedb[] = {
 	 0,
 	 FB_VMODE_NONINTERLACED,
 	 FB_MODE_IS_DETAILED,},
-	{
-	 "XGA", 60, 1024, 768, 15385,
-	 220, 40,
-	 21, 7,
-	 60, 10,
-	 0,
-	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
 };
 int mxcfb_ldb_modedb_sz = ARRAY_SIZE(mxcfb_ldb_modedb);
 
@@ -433,7 +425,7 @@ static int ldb_fb_pre_setup(struct fb_info *fbi)
 {
 	int ipu_di = 0;
 	struct clk *di_clk, *ldb_clk_parent;
-	unsigned long ldb_clk_prate = 455000000;
+	unsigned long ldb_clk_prate = 0;
 
 	fbi->mode = (struct fb_videomode *)fb_match_mode(&fbi->var,
 			&fbi->modelist);
@@ -489,7 +481,9 @@ static int ldb_fb_pre_setup(struct fb_info *fbi)
 			}
 		}
 
-		/* TODO:Set the correct pll4 rate for all situations */
+		/* reset the ldb_clk_rate base on the pixclock */
+		ldb_clk_prate = ((PICOS2KHZ(fbi->var.pixclock) * 1000) * 7);
+
 		if (ipu_di == 1) {
 			ldb.ldb_di_clk[1] =
 				clk_get(g_ldb_dev, "ldb_di1_clk");
@@ -1070,7 +1064,7 @@ static int mxc_ldb_ioctl(struct inode *inode, struct file *file,
 		/* TODO:Set the correct pll4 rate for all situations */
 		pll4_clk = clk_get(g_ldb_dev, "pll4");
 		pll4_rate = clk_get_rate(pll4_clk);
-		pll4_rate = 455000000;
+		pll4_rate = 231000000;
 		clk_set_rate(pll4_clk, pll4_rate);
 		clk_put(pll4_clk);
 
