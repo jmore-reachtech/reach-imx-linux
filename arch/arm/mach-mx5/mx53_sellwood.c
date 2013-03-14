@@ -273,7 +273,61 @@ static iomux_v3_cfg_t mx53_sellwood_pads[] = {
 	MX53_PAD_CSI0_DAT4__GPIO5_22,
 	MX53_PAD_CSI0_DAT5__GPIO5_23,
 	MX53_PAD_CSI0_DAT6__GPIO5_24,
+
+        /* ECSPI */
+        MX53_PAD_EIM_D18__ECSPI1_MOSI,
+        MX53_PAD_EIM_D17__ECSPI1_MISO,
+        MX53_PAD_EIM_D16__ECSPI1_SCLK,
+//        MX53_PAD_EIM_D19__GPIO3_19,
+        MX53_PAD_EIM_D19__ECSPI1_SS1,
+
 };
+
+static struct mxc_spi_master mxcspi1_data = {
+        .maxchipselect = 4,
+        .spi_version = 23,
+        .chipselect_active = NULL,
+        .chipselect_inactive = NULL,
+};
+
+
+static struct mtd_partition m25p32_partitions[] = {
+	{
+	.name = "bootloader",
+	.offset = 0,
+	.size = 0x00010000,
+	},
+	{
+	.name = "kernel",
+	.offset = MTDPART_OFS_APPEND,
+	.size = MTDPART_SIZ_FULL,
+	},
+};
+
+static struct flash_platform_data m25p32_spi_flash_data = {
+	.name = "m25p32",
+	.parts = m25p32_partitions,
+	.nr_parts = ARRAY_SIZE(m25p32_partitions),
+	.type = "m25p32",
+};
+
+static struct spi_board_info m25p32_spi1_board_info[] __initdata = {
+	{
+		/* the modalias must be the same as spi device driver name */
+		.modalias = "m25p32",           /* Name of spi_driver for this device */
+		.max_speed_hz = 20000000,       /* max spi SCK clock speed in HZ */
+		.bus_num = 1,                   /* Framework bus number */
+		.chip_select = 1,               /* Framework chip select. */
+		.platform_data = &m25p32_spi_flash_data,
+	}
+};
+
+static void spi_device_init(void)
+{
+	spi_register_board_info(m25p32_spi1_board_info,
+				ARRAY_SIZE(m25p32_spi1_board_info));
+}
+
 
 static void sellwood_da9053_irq_wakeup_only_fixup(void)
 {
@@ -1021,6 +1075,9 @@ static void __init mxc_board_init(void)
 	mxc_register_device(&imx_ahci_device_hwmon, NULL);
 	mxc_register_device(&mxc_fec_device, &fec_data);
 	mxc_register_device(&mxc_ptp_device, NULL);
+
+        mxc_register_device(&mxcspi1_device, &mxcspi1_data);
+
 	/* ASRC is only available for MX53 TO2.0 */
 	if (mx53_revision() >= IMX_CHIP_REVISION_2_0) {
 		mxc_asrc_data.asrc_core_clk = clk_get(NULL, "asrc_clk");
@@ -1056,6 +1113,10 @@ static void __init mxc_board_init(void)
 	sellwood_add_device_buttons();
 	pm_power_off = da9053_power_off;
 	pm_i2c_init(I2C1_BASE_ADDR - MX53_OFFSET);
+
+        printk( "BESEMER: spi_device_init()\n" );
+        spi_device_init();
+
 }
 
 static void __init mx53_sellwood_timer_init(void)
