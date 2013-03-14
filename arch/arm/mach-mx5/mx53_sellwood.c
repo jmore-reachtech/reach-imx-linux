@@ -253,26 +253,33 @@ static iomux_v3_cfg_t mx53_sellwood_pads[] = {
 	/* SPDIF */
 	MX53_PAD_GPIO_7__SPDIF_PLOCK,
 	MX53_PAD_GPIO_17__SPDIF_OUT1,
+
 	/* GPIO */
-	MX53_PAD_PATA_DA_1__GPIO7_7,
-	MX53_PAD_PATA_DA_2__GPIO7_8,
-	MX53_PAD_PATA_DATA5__GPIO2_5,
-	MX53_PAD_PATA_DATA6__GPIO2_6,
-	MX53_PAD_PATA_DATA14__GPIO2_14,
-	MX53_PAD_PATA_DATA15__GPIO2_15,
-	MX53_PAD_PATA_INTRQ__GPIO7_2,
 	MX53_PAD_EIM_WAIT__GPIO5_0,
-	MX53_PAD_NANDF_WP_B__GPIO6_9,
-	MX53_PAD_NANDF_RB0__GPIO6_10,
-	MX53_PAD_NANDF_CS1__GPIO6_14,
 	MX53_PAD_NANDF_CS2__GPIO6_15,
 	MX53_PAD_NANDF_CS3__GPIO6_16,
-	MX53_PAD_GPIO_5__GPIO1_5,
 	MX53_PAD_GPIO_16__GPIO7_11,
-	MX53_PAD_GPIO_8__GPIO1_8,
 	MX53_PAD_CSI0_DAT4__GPIO5_22,
 	MX53_PAD_CSI0_DAT5__GPIO5_23,
 	MX53_PAD_CSI0_DAT6__GPIO5_24,
+
+	/* NAND */
+	MX53_PAD_PATA_DATA0__EMI_NANDF_D_0,
+	MX53_PAD_PATA_DATA1__EMI_NANDF_D_1,
+	MX53_PAD_PATA_DATA2__EMI_NANDF_D_2,
+	MX53_PAD_PATA_DATA3__EMI_NANDF_D_3,
+	MX53_PAD_PATA_DATA4__EMI_NANDF_D_4,
+	MX53_PAD_PATA_DATA5__EMI_NANDF_D_5,
+	MX53_PAD_PATA_DATA6__EMI_NANDF_D_6,
+	MX53_PAD_PATA_DATA7__EMI_NANDF_D_7,
+	MX53_PAD_NANDF_RB0__EMI_NANDF_RB_0,
+	MX53_PAD_NANDF_CS0__EMI_NANDF_CS_0,
+	MX53_PAD_NANDF_CS1__EMI_NANDF_CS_1,
+	MX53_PAD_NANDF_WP_B__EMI_NANDF_WP_B,
+	MX53_PAD_NANDF_CLE__EMI_NANDF_CLE,
+	MX53_PAD_NANDF_ALE__EMI_NANDF_ALE,
+	MX53_PAD_NANDF_RE_B__EMI_NANDF_RE_B,
+	MX53_PAD_NANDF_WE_B__EMI_NANDF_WE_B,
 
         /* ECSPI */
         MX53_PAD_EIM_D18__ECSPI1_MOSI,
@@ -295,17 +302,20 @@ static struct mtd_partition m25p32_partitions[] = {
 	{
 	.name = "bootloader",
 	.offset = 0,
-	.size = 0x00010000,
+        .size           = 4 * SZ_128K,
+        .mask_flags     = MTD_WRITEABLE,
+
 	},
 	{
 	.name = "kernel",
 	.offset = MTDPART_OFS_APPEND,
 	.size = MTDPART_SIZ_FULL,
+        .mask_flags     = MTD_WRITEABLE,
 	},
 };
 
 static struct flash_platform_data m25p32_spi_flash_data = {
-	.name = "m25p32",
+	.name = "spi_nor_flash",
 	.parts = m25p32_partitions,
 	.nr_parts = ARRAY_SIZE(m25p32_partitions),
 	.type = "m25p32",
@@ -327,6 +337,60 @@ static void spi_device_init(void)
 	spi_register_board_info(m25p32_spi1_board_info,
 				ARRAY_SIZE(m25p32_spi1_board_info));
 }
+
+
+/* NAND Flash Partitions */
+static struct mtd_partition nand_flash_partitions[] = {
+
+	{
+	.name = "bootloader",
+	.offset = 0,
+        .size           = 4 * SZ_128K,
+	},
+	{
+	.name = "kernel",
+	.offset = MTDPART_OFS_APPEND,
+	.size = MTDPART_SIZ_FULL,
+	},
+
+};
+
+static int nand_init(void)
+{
+#ifdef	ORIGINAL_MX53_ARD_USES_EXPANSION
+	u32 i, reg;
+	void __iomem *base;
+
+	#define M4IF_GENP_WEIM_MM_MASK          0x00000001
+	#define WEIM_GCR2_MUX16_BYP_GRANT_MASK  0x00001000
+
+	base = ioremap(MX53_BASE_ADDR(M4IF_BASE_ADDR), SZ_4K);
+	reg = __raw_readl(base + 0xc);
+	reg &= ~M4IF_GENP_WEIM_MM_MASK;
+	__raw_writel(reg, base + 0xc);
+
+	iounmap(base);
+
+	base = ioremap(MX53_BASE_ADDR(WEIM_BASE_ADDR), SZ_4K);
+	for (i = 0x4; i < 0x94; i += 0x18) {
+		reg = __raw_readl((u32)base + i);
+		reg &= ~WEIM_GCR2_MUX16_BYP_GRANT_MASK;
+		__raw_writel(reg, (u32)base + i);
+	}
+
+	iounmap(base);
+#endif
+
+	return 0;
+}
+
+static struct flash_platform_data mxc_nand_data = {
+	.parts = nand_flash_partitions,
+	.nr_parts = ARRAY_SIZE(nand_flash_partitions),
+	.width = 1,
+	.init = nand_init,
+};
+
 
 
 static void sellwood_da9053_irq_wakeup_only_fixup(void)
@@ -1076,6 +1140,9 @@ static void __init mxc_board_init(void)
 	mxc_register_device(&mxc_fec_device, &fec_data);
 	mxc_register_device(&mxc_ptp_device, NULL);
 
+        printk( "BESEMER: spi_device_init()\n" );
+        spi_device_init();
+        mxc_register_device(&mxc_nandv2_mtd_device, &mxc_nand_data);
         mxc_register_device(&mxcspi1_device, &mxcspi1_data);
 
 	/* ASRC is only available for MX53 TO2.0 */
@@ -1114,8 +1181,6 @@ static void __init mxc_board_init(void)
 	pm_power_off = da9053_power_off;
 	pm_i2c_init(I2C1_BASE_ADDR - MX53_OFFSET);
 
-        printk( "BESEMER: spi_device_init()\n" );
-        spi_device_init();
 
 }
 
