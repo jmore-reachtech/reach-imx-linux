@@ -298,27 +298,37 @@ static struct mxc_spi_master mxcspi1_data = {
 };
 
 
-static struct mtd_partition m25p32_partitions[] = {
+static struct mtd_partition m25p32_partitions[] __initdata = {
 	{
-	.name = "bootloader",
+	.name = "spi_bootloader",
 	.offset = 0,
         .size           = 4 * SZ_128K,
-        .mask_flags     = MTD_WRITEABLE,
 
 	},
 	{
-	.name = "kernel",
+	.name = "spi_kernel",
 	.offset = MTDPART_OFS_APPEND,
 	.size = MTDPART_SIZ_FULL,
-        .mask_flags     = MTD_WRITEABLE,
 	},
 };
 
-static struct flash_platform_data m25p32_spi_flash_data = {
-	.name = "spi_nor_flash",
-	.parts = m25p32_partitions,
+struct spi_nor_flash_platform_data {
+        char            *name;
+        struct mtd_partition *parts;
+        unsigned int    nr_parts;
+
+        char            *type;
+
+        /* we'll likely add more ... use JEDEC IDs, etc */
+};
+
+static struct spi_nor_flash_platform_data m25p32_spi_flash_data[] __initdata = {
+	{
+	.name = "m25p32",
+	.parts = &m25p32_partitions[0],
 	.nr_parts = ARRAY_SIZE(m25p32_partitions),
 	.type = "m25p32",
+	}
 };
 
 static struct spi_board_info m25p32_spi1_board_info[] __initdata = {
@@ -328,12 +338,27 @@ static struct spi_board_info m25p32_spi1_board_info[] __initdata = {
 		.max_speed_hz = 20000000,       /* max spi SCK clock speed in HZ */
 		.bus_num = 1,                   /* Framework bus number */
 		.chip_select = 1,               /* Framework chip select. */
-		.platform_data = &m25p32_spi_flash_data,
+		.platform_data = &m25p32_spi_flash_data[0],
 	}
 };
 
 static void spi_device_init(void)
 {
+#ifdef	ORIGINAL_TBESEMER
+int i,*iPtr;
+
+	printk( "BESEMER: spi_device_init() &m25p32_partitions[0] = %x\n", &m25p32_partitions[0] );
+
+	printk( "BESEMER: spi_device_init() &m25p32_spi_flash_data[0] = %x\n", &m25p32_spi_flash_data[0] );
+
+	printk( "BESEMER: spi_device_init() m25p32_spi1_board_info = %x\n", m25p32_spi1_board_info );
+
+	iPtr = (int *)&m25p32_partitions[0];
+	for( i = 0; i < 12; i++ )
+		printk( "BESEMER: spi_device_init() 0x%08X: 0x%08X\n", iPtr, *iPtr++ );
+
+#endif
+
 	spi_register_board_info(m25p32_spi1_board_info,
 				ARRAY_SIZE(m25p32_spi1_board_info));
 }
@@ -1140,8 +1165,6 @@ static void __init mxc_board_init(void)
 	mxc_register_device(&mxc_fec_device, &fec_data);
 	mxc_register_device(&mxc_ptp_device, NULL);
 
-        printk( "BESEMER: spi_device_init()\n" );
-        spi_device_init();
         mxc_register_device(&mxc_nandv2_mtd_device, &mxc_nand_data);
         mxc_register_device(&mxcspi1_device, &mxcspi1_data);
 
@@ -1180,6 +1203,9 @@ static void __init mxc_board_init(void)
 	sellwood_add_device_buttons();
 	pm_power_off = da9053_power_off;
 	pm_i2c_init(I2C1_BASE_ADDR - MX53_OFFSET);
+
+        printk( "BESEMER: spi_device_init()\n" );
+        spi_device_init();
 
 
 }
