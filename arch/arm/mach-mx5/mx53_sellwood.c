@@ -302,8 +302,12 @@ static struct mtd_partition m25p32_partitions[] __initdata = {
 	{
 	.name = "spi_bootloader",
 	.offset = 0,
-        .size           = 4 * SZ_128K,
-
+        .size           = SZ_256K,
+	},
+	{
+	.name = "spi_environment",
+	.offset = MTDPART_OFS_APPEND,
+        .size           = SZ_128K,
 	},
 	{
 	.name = "spi_kernel",
@@ -368,12 +372,12 @@ int i,*iPtr;
 static struct mtd_partition nand_flash_partitions[] = {
 
 	{
-	.name = "bootloader",
+	.name = "rootfs",
 	.offset = 0,
-        .size           = 4 * SZ_128K,
+        .size           = SZ_256M,
 	},
 	{
-	.name = "kernel",
+	.name = "appfs",
 	.offset = MTDPART_OFS_APPEND,
 	.size = MTDPART_SIZ_FULL,
 	},
