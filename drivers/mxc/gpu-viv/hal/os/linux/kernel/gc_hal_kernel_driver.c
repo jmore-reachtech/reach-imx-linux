@@ -194,6 +194,10 @@ static int mmu = 1;
 module_param(mmu, int, 0644);
 MODULE_PARM_DESC(mmu, "Disable MMU if set it to 0, enabled by default");
 
+int gpu3DMinClock = 1;
+module_param(gpu3DMinClock, int, 0644);
+MODULE_PARM_DESC(gpu3DMinClock, "Allow setting minimum gpu clock");
+
 static int irqs[gcvCORE_COUNT] = {[0 ... gcvCORE_COUNT - 1] = -1};
 module_param_array(irqs, int, NULL, 0644);
 MODULE_PARM_DESC(irqs, "Array of IRQ numbers of multi-GPU");
@@ -213,8 +217,6 @@ MODULE_PARM_DESC(chipIDs, "Array of chipIDs of multi-GPU");
 static uint type = 0;
 module_param(type, uint, 0664);
 MODULE_PARM_DESC(type, "0 - Char Driver (Default), 1 - Misc Driver");
-
-static int gpu3DMinClock = 1;
 
 static int contiguousRequested = 0;
 

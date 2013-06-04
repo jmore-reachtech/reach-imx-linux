@@ -108,6 +108,7 @@ typedef struct _gcsFE_STACK
 }
 gcsFE_STACK;
 
+extern int gpu3DMinClock;
 /******************************************************************************\
 ********************************* Support Code *********************************
 \******************************************************************************/
@@ -8885,7 +8886,10 @@ gckHARDWARE_GetFscaleValue(
     )
 {
     *FscaleValue = Hardware->powerOnFscaleVal;
-    *MinFscaleValue = Hardware->minFscaleValue;
+    if ((gpu3DMinClock > 0) && (gpu3DMinClock <= 64) && (Hardware->core == gcvCORE_MAJOR))
+        *MinFscaleValue = gpu3DMinClock;
+    else
+        *MinFscaleValue = Hardware->minFscaleValue;
     *MaxFscaleValue = 64;
 
     return gcvSTATUS_OK;
