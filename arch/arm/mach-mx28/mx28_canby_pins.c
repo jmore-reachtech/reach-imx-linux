@@ -871,18 +871,26 @@ static struct pin_desc mx28canby_spi_pins[] = {
 	{
 	 .name	= "SSP2 SS0",
 	 .id	= PINID_SSP2_SS0,
-	 .fun	= PIN_FUN1,
+	 .fun	= PIN_GPIO,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
+	 .pullup	= 1,
+	 .pull 		= 1,
+	 .output	= 0, /*input pin only used for wake/int */
+	 .data 		= 0, /* the data is na */
 	 },
 	 {
 	 .name	= "SSP2 SS1", //Added to support another Chip Select
 	 .id	= PINID_SSP2_SS1,
-	 .fun	= PIN_FUN1,
+	 .fun	= PIN_GPIO,
 	 .strength	= PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
+	 .pullup	= 1,
+	 .pull		= 1,
+	 .output	= 1, /* this is an output pin*/
+	 .data		= 0, /* toggle 0 and 1 but not here*/
 	 },
 };
 #endif
