@@ -24,7 +24,6 @@
 #include <linux/clk.h>
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
-#include <linux/i2c/pca953x.h>
 
 #ifndef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
 #define SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED 1
@@ -53,9 +52,6 @@
 #include "mx28_canby.h"
 #include "mx28_pins.h"
 
-#define PCA9534_GPIO_BASE	160
-#define PCA9534_PIN(n)		(PCA9534_GPIO_BASE + n)
-
 #define LED_STATUS		MXS_PIN_TO_GPIO(PINID_SPDIF)
 #define LCD_DISP_ON		MXS_PIN_TO_GPIO(PINID_GPMI_CE3N)
 #define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(PINID_AUART0_CTS)
@@ -80,6 +76,14 @@
 
 #define	I_MX28_HW_PINCTRL_MEM_BASE		0x80018000
 #define	I_MX28_HW_PINCTRL_MEM_RANGE_PER_BANK	0x10
+
+#if defined(CONFIG_GPIO_PCA953X) || \
+	defined(CONFIG_GPIO_PCA953X_MODULE)
+
+#include <linux/i2c/pca953x.h>
+
+#define PCA9534_GPIO_BASE	160
+#define PCA9534_PIN(n)		(PCA9534_GPIO_BASE + n)
 
 int pca953x_setup(struct i2c_client *client,
 				unsigned gpio, unsigned ngpio,
@@ -133,6 +137,7 @@ static struct pca953x_platform_data pca9534_data = {
 		.gpio_base = PCA9534_GPIO_BASE,
 		.setup = &pca953x_setup,
 };
+#endif
 
 #ifdef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
 
@@ -174,10 +179,13 @@ static struct i2c_board_info __initdata mxs_i2c_device[] = {
 		I2C_BOARD_INFO("pcf8523", 0x68), 
 		.flags = I2C_M_TEN,
 	},
+#if defined(CONFIG_GPIO_PCA953X) || \
+	defined(CONFIG_GPIO_PCA953X_MODULE)
 	{ 
 		I2C_BOARD_INFO("pca9534", 0x3E),
 		.platform_data = &pca9534_data,
 	},
+#endif
 #ifdef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
 	{
 		I2C_BOARD_INFO(SITRONIX_I2C_TOUCH_DRV_NAME, 0x55),
