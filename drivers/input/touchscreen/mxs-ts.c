@@ -30,6 +30,8 @@
 #include <mach/device.h>
 #include <mach/regs-lradc.h>
 
+MODULE_LICENSE("GPL");
+
 #define TOUCH_DEBOUNCE_TOLERANCE	100
 
 struct mxs_ts_info {
@@ -468,3 +470,4 @@ static void __exit mxs_ts_exit(void)
 
 module_init(mxs_ts_init);
 module_exit(mxs_ts_exit);
+
