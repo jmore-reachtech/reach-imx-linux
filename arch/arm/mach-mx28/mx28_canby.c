@@ -25,15 +25,6 @@
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 
-#ifndef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
-#define SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED 1
-#endif
-
-#ifdef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
-#include <linux/input/sitronix_i2c_touch.h>
-#include <linux/delay.h>
-#endif
-
 #include <asm/setup.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -55,27 +46,6 @@
 #define LED_STATUS		MXS_PIN_TO_GPIO(PINID_SPDIF)
 #define LCD_DISP_ON		MXS_PIN_TO_GPIO(PINID_GPMI_CE3N)
 #define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(PINID_AUART0_CTS)
-
-/*
-*  Some constants defined for the PINCTRL banks
-*  These banks are defined in the
-*  i.mx28 applications processor reference manual
-*
-* On the board (canby), we have BANK2 PIN19 and PIN20 disabled
-* and their pullup registers need to be enabled
-*  in order for the signals to be driven
-*
-* Each pullup bank has 16 bytes of register space and
-* the base starts at the MEM_BASE below
-*
-* The bank2 [pin19 and pin20] are the pull up registers
-* for the SSP2_SS0 and SSP2_SS1 pins. The first one is an INT
-* pin for the Sitronix touch screen controller and the 2nd
-* one is the reset (output) to the Sitronix touch screen controller
-*/
-
-#define	I_MX28_HW_PINCTRL_MEM_BASE		0x80018000
-#define	I_MX28_HW_PINCTRL_MEM_RANGE_PER_BANK	0x10
 
 #if defined(CONFIG_GPIO_PCA953X) || \
 	defined(CONFIG_GPIO_PCA953X_MODULE)
@@ -139,7 +109,32 @@ static struct pca953x_platform_data pca9534_data = {
 };
 #endif
 
-#ifdef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
+#if defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH) || \
+	defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH_MODULE)
+
+#include <linux/input/sitronix_i2c_touch.h>
+#include <linux/delay.h>
+
+/*
+*  Some constants defined for the PINCTRL banks
+*  These banks are defined in the
+*  i.mx28 applications processor reference manual
+*
+* On the board (canby), we have BANK2 PIN19 and PIN20 disabled
+* and their pullup registers need to be enabled
+*  in order for the signals to be driven
+*
+* Each pullup bank has 16 bytes of register space and
+* the base starts at the MEM_BASE below
+*
+* The bank2 [pin19 and pin20] are the pull up registers
+* for the SSP2_SS0 and SSP2_SS1 pins. The first one is an INT
+* pin for the Sitronix touch screen controller and the 2nd
+* one is the reset (output) to the Sitronix touch screen controller
+*/
+
+#define	I_MX28_HW_PINCTRL_MEM_BASE		0x80018000
+#define	I_MX28_HW_PINCTRL_MEM_RANGE_PER_BANK	0x10
 
 /*
 * On the canby board for reachtech using the i.mx28 app processor,
@@ -186,7 +181,8 @@ static struct i2c_board_info __initdata mxs_i2c_device[] = {
 		.platform_data = &pca9534_data,
 	},
 #endif
-#ifdef SITRONIX_TOUCHSCREEN_CONTROLLER_SUPPORTED
+#if defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH) || \
+	defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH_MODULE)
 	{
 		I2C_BOARD_INFO(SITRONIX_I2C_TOUCH_DRV_NAME, 0x55),
 		.irq = MXS_PIN_TO_GPIO(MULTITOUCH_INT_GPIO),
