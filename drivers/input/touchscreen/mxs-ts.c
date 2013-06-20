@@ -409,7 +409,7 @@ static int __devexit mxs_ts_remove(struct platform_device *pdev)
 
 	free_irq(info->device_irq, info);
 	free_irq(info->touch_irq, info);
-	input_free_device(info->idev);
+	input_unregister_device(info->idev);
 
 	enter_state_disabled(info);
 	kfree(info->idev);
