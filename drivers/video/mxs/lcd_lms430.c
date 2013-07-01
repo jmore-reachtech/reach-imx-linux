@@ -33,6 +33,11 @@
 #include <mach/regs-pwm.h>
 #include <mach/system.h>
 
+#ifdef CONFIG_MACH_MX28_CANBY
+#include <mach/pinctrl.h>
+#define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 2))
+#endif
+
 #define REGS_PWM_BASE IO_ADDRESS(PWM_PHYS_ADDR)
 
 #define DOTCLK_H_ACTIVE  480
@@ -112,6 +117,10 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 
 	mxs_lcd_set_bl_pdata(pentry->bl_data);
 	mxs_lcdif_notify_clients(MXS_LCDIF_PANEL_INIT, pentry);
+#ifdef CONFIG_MACH_MX28_CANBY
+	/* enable backlight, done last to minimize flash */
+	gpio_set_value(LCD_BL_ENABLE, 1);
+#endif
 	return 0;
 
 out:
@@ -121,6 +130,11 @@ out:
 static void release_panel(struct device *dev,
 			  struct mxs_platform_fb_entry *pentry)
 {
+#ifdef CONFIG_MACH_MX28_CANBY
+	/* disable backlight */
+	gpio_set_value(LCD_BL_ENABLE, 0);
+#endif
+
 	/* Reset LCD panel signel. */
 	__raw_writel(BM_LCDIF_CTRL1_RESET,
 		REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
