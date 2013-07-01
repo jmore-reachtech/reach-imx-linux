@@ -42,7 +42,12 @@
 #endif
 
 #ifndef MXS_EXTEND_NR_GPIOS
+#if defined(CONFIG_MACH_MX28_CANBY)
+#define MXS_EXTEND_NR_GPIOS	8
+#endif
+#if defined(CONFIG_MACH_MX28EVK)
 #define MXS_EXTEND_NR_GPIOS	0
+#endif
 #endif
 
 #define ARCH_NR_GPIOS	(MXS_ARCH_NR_GPIOS + MXS_EXTEND_NR_GPIOS)
