@@ -620,6 +620,7 @@ static void init_timings(struct mxs_fb_data *data)
 	__raw_writel(timings, data->regbase + HW_LCDIF_TIMING);
 }
 
+#ifndef CONFIG_MACH_MX28_CANBY
 #ifdef CONFIG_CPU_FREQ
 
 struct mxsfb_notifier_block {
@@ -666,6 +667,7 @@ static struct mxsfb_notifier_block mxsfb_nb = {
 	       },
 };
 #endif /* CONFIG_CPU_FREQ */
+#endif /* CONFIG_MACH_MX28_CANBY */
 
 static int get_max_memsize(struct mxs_platform_fb_entry *pentry,
 			   void *data, int ret_prev)
@@ -846,15 +848,21 @@ static int __devinit mxsfb_probe(struct platform_device *pdev)
 
 	pentry->run_panel();
 	/* REVISIT: temporary workaround for MX23EVK */
+#ifndef CONFIG_MACH_MX28_CANBY
+	/* workaround not required on canby */
+	/* causes screen flashing at boot   */
 	mxsfb_disable_controller(data);
 	mxsfb_enable_controller(data);
+#endif /* CONFIG_MACH_MX28_CANBY */
 	data->cur_phys = data->phys_start;
 	dev_dbg(&pdev->dev, "LCD running now\n");
 
+#ifndef CONFIG_MACH_MX28_CANBY
 #ifdef CONFIG_CPU_FREQ
 	mxsfb_nb.fb_data = data;
 	cpufreq_register_notifier(&mxsfb_nb.nb, CPUFREQ_TRANSITION_NOTIFIER);
 #endif /* CONFIG_CPU_FREQ */
+#endif /* CONFIG_MACH_MX28_CANBY */
 
 	goto out;
 
