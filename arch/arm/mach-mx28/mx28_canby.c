@@ -283,16 +283,17 @@ static void lcd_disp_init(void)
 {
 	gpio_request(LCD_DISP_ON, "lcd-disp");
 	gpio_direction_output(LCD_DISP_ON,1);
-	gpio_set_value(LCD_DISP_ON, 1);
-	gpio_free(LCD_DISP_ON);
+	/* disable display for now */
+	gpio_set_value(LCD_DISP_ON, 0);
+	/* don't free LCD_DISP_ON gpio         */
+	/* we need access in the lms430 driver */
 
 	gpio_request(LCD_BL_ENABLE, "lcd-bl");
 	gpio_direction_output(LCD_BL_ENABLE,1);
-	/* leave backlight disabled for now    */
+	/* disable backlight for now    */
 	gpio_set_value(LCD_BL_ENABLE, 0);
-	/* don't free LCD_BL_ENABLE gpio       */
-	/* we need access in the lms430 driver */
-	/*gpio_free(LCD_BL_ENABLE);*/
+	/* don't free LCD_BL_ENABLE gpio      */
+	/* we need access in the mxsfb driver */
 }
 
 static void __init mx28canby_device_init(void)

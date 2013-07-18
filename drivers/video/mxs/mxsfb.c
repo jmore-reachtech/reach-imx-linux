@@ -42,6 +42,12 @@
 #include <mach/clock.h>
 #include <mach/lcdif.h>
 
+#ifdef CONFIG_MACH_MX28_CANBY
+#include <mach/pinctrl.h>
+#include <linux/delay.h>
+#define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 2))
+#endif
+
 #define NUM_SCREENS	1
 
 enum {
@@ -857,6 +863,12 @@ static int __devinit mxsfb_probe(struct platform_device *pdev)
 	data->cur_phys = data->phys_start;
 	dev_dbg(&pdev->dev, "LCD running now\n");
 
+#ifdef CONFIG_MACH_MX28_CANBY
+	/* Delay to meet panel T4 spec (>= 160ms) */
+	/* we chose 200ms                         */
+	mdelay(200);
+	gpio_set_value(LCD_BL_ENABLE, 1);
+#endif
 #ifndef CONFIG_MACH_MX28_CANBY
 #ifdef CONFIG_CPU_FREQ
 	mxsfb_nb.fb_data = data;

@@ -36,6 +36,7 @@
 #ifdef CONFIG_MACH_MX28_CANBY
 #include <mach/pinctrl.h>
 #define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 2))
+#define LCD_DISP_ON	MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(0, 19))
 #endif
 
 #define REGS_PWM_BASE IO_ADDRESS(PWM_PHYS_ADDR)
@@ -118,8 +119,11 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 	mxs_lcd_set_bl_pdata(pentry->bl_data);
 	mxs_lcdif_notify_clients(MXS_LCDIF_PANEL_INIT, pentry);
 #ifdef CONFIG_MACH_MX28_CANBY
-	/* enable backlight, done last to minimize flash */
-	gpio_set_value(LCD_BL_ENABLE, 1);
+	/* Delay to meet panel T3 spec (0 - 200ms) */
+	/* we use a value midway, 50ms             */
+	mdelay(50);
+	/* enable display */
+	gpio_set_value(LCD_DISP_ON, 1);
 #endif
 	return 0;
 
@@ -133,12 +137,22 @@ static void release_panel(struct device *dev,
 #ifdef CONFIG_MACH_MX28_CANBY
 	/* disable backlight */
 	gpio_set_value(LCD_BL_ENABLE, 0);
+	/* Delay to meet panel T5 spec (>= 160ms) */
+	/* we use the minimum, 160ms              */
+	mdelay(160);
+	/* disable display */
+	gpio_set_value(LCD_DISP_ON, 0);
+	/* Delay to meet panel T3 spec (0 - 200ms) */
+	/* we use a value midway, 100ms            */
+	mdelay(100);
 #endif
 
-	/* Reset LCD panel signel. */
+#ifndef CONFIG_MACH_MX28_CANBY
+	/* Reset LCD panel signal. */
 	__raw_writel(BM_LCDIF_CTRL1_RESET,
 		REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
 	mdelay(100);
+#endif
 	mxs_lcdif_notify_clients(MXS_LCDIF_PANEL_RELEASE, pentry);
 	release_dotclk_panel();
 	mxs_lcdif_dma_release();
@@ -146,6 +160,13 @@ static void release_panel(struct device *dev,
 	clk_put(lcd_clk);
 	__raw_writel(BM_LCDIF_CTRL_CLKGATE,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+#ifdef CONFIG_MACH_MX28_CANBY
+	/* since Canby uses lcd reset signal for power enable */
+	/* we need to wait till lcd signals are disabled      */
+	/* before turing off power                            */
+	__raw_writel(BM_LCDIF_CTRL1_RESET,
+		REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
+#endif
 }
 
 /* disbales the run state of the LCD controller - no data*/
