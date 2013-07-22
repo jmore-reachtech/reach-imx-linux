@@ -152,6 +152,25 @@ static struct pin_desc mx28canby_fixed_pins[] = {
 	 .drive	= 1,
 	 },
 #endif
+#if defined(CONFIG_LEDS_MXS) || \
+	defined(CONFIG_LEDS_MXS_MODULE)
+	{
+	 .name = "BEEPER_PWM4",
+	 .id = PINID_PWM4,
+	 .fun = PIN_FUN1,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 },
+	{
+	 .name = "BEEPER_PWM7",
+	 .id = PINID_SAIF1_SDATA0,
+	 .fun = PIN_FUN2,
+	 .strength = PAD_8MA,
+	 .voltage = PAD_3_3V,
+	 .drive	= 1,
+	 },
+#endif
 #if defined(CONFIG_FB_MXS) || defined(CONFIG_FB_MXS_MODULE)
 	{
 	 .name  = "LCD_D00",
