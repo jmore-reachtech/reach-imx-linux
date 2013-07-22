@@ -229,14 +229,12 @@ static void __init fixup_board(struct machine_desc *desc, struct tag *tags,
 #if defined(CONFIG_LEDS_MXS) || defined(CONFIG_LEDS_MXS_MODULE)
 static struct mxs_pwm_led  mx28canby_led_pwm[2] = {
 	[0] = {
-		.name = "led-pwm0",
-		.pwm = 0,
-		.dev.brightness = 127,
+		.name = "beeper-pwm4",
+		.pwm = 4,
 		},
 	[1] = {
-		.name = "led-pwm1",
-		.pwm = 1,
-		.dev.brightness = 255,
+		.name = "beeper-pwm7",
+		.pwm = 7,
 		},
 };
 
