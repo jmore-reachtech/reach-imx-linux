@@ -70,6 +70,50 @@ static void mxs_pwm_led_brightness_set(struct led_classdev *pled,
 	}
 }
 
+static int mxs_led_blink(struct led_classdev *pled,
+			    unsigned long *delay_on,
+			    unsigned long *delay_off)
+{
+	struct mxs_pwm_led *pwm_led;
+	unsigned long active_start, inactive_start, period, period_settings;
+
+	pwm_led = container_of(pled, struct mxs_pwm_led, dev);
+
+	/* period must be <= 2^16 clocks */
+	if ( (*delay_on + *delay_off) > 0x10000) {
+		printk("leds-mxs-pwm: (on + off) > 2^16)\n");
+		return -EINVAL;
+	}
+
+	/* always start active state at clock zero */
+	active_start = 0;
+
+	/* start inactive state after delay_on clocks    */
+	inactive_start = *delay_on;
+
+	/* period is delay_on plus delay_off */
+	period = *delay_on + *delay_off;
+
+	period_settings = (BF_PWM_PERIODn_CDIV(2) |        /* divide by 24Mhz clock by 4  */
+			BF_PWM_PERIODn_INACTIVE_STATE(2) | /* low output for inactive     */
+			BF_PWM_PERIODn_ACTIVE_STATE(3) |   /* high output for active      */
+			BF_PWM_PERIODn_PERIOD(period - 1));/* period field = period - 1   */
+
+	if (pwm_led->pwm < CONFIG_MXS_PWM_CHANNELS) {
+		__raw_writel(BF_PWM_CTRL_PWM_ENABLE(pwm_led->pwm),
+			     leds.base + HW_PWM_CTRL_CLR);
+		__raw_writel(BF_PWM_ACTIVEn_INACTIVE(inactive_start) |
+				BF_PWM_ACTIVEn_ACTIVE(active_start),
+			     leds.base + HW_PWM_ACTIVEn(pwm_led->pwm));
+		__raw_writel(period_settings,
+			     leds.base + HW_PWM_PERIODn(pwm_led->pwm));
+		__raw_writel(BF_PWM_CTRL_PWM_ENABLE(pwm_led->pwm),
+			     leds.base + HW_PWM_CTRL_SET);
+	}
+
+	return 0;
+}
+
 static int __devinit mxs_pwm_led_probe(struct platform_device *pdev)
 {
 	struct mxs_pwm_leds_plat_data *plat_data;
@@ -118,6 +162,7 @@ static int __devinit mxs_pwm_led_probe(struct platform_device *pdev)
 		led->brightness = led->brightness;
 		led->flags = 0;
 		led->brightness_set = mxs_pwm_led_brightness_set;
+		led->blink_set = mxs_led_blink;
 		led->default_trigger = 0;
 
 		rc = led_classdev_register(&pdev->dev, led);
