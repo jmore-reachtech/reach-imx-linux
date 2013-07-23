@@ -16,12 +16,14 @@
 
 #include "htc.h"
 
-#define ATH9K_FW_USB_DEV(devid, fw)					\
-	{ USB_DEVICE(0x0cf3, devid), .driver_info = (unsigned long) fw }
+#define ATH9K_FW_USB_DEV(vendid, devid, fw)					\
+	{ USB_DEVICE(vendid, devid), .driver_info = (unsigned long) fw }
 
 static struct usb_device_id ath9k_hif_usb_ids[] = {
-	ATH9K_FW_USB_DEV(0x9271, "ar9271.fw"),
-	ATH9K_FW_USB_DEV(0x1006, "ar9271.fw"),
+	ATH9K_FW_USB_DEV(0x0cf3, 0x9271, "ar9271.fw"), /* Atheros */
+	ATH9K_FW_USB_DEV(0x0cf3, 0x1006, "ar9271.fw"), /* Atheros */
+	ATH9K_FW_USB_DEV(0x0846, 0x9030, "ar9271.fw"), /* Netgear N150 */
+	ATH9K_FW_USB_DEV(0x07D1, 0x3A10, "ar9271.fw"), /* Dlink Wireless 150 */
 	{ },
 };
 
