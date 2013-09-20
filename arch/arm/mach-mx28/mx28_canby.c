@@ -47,68 +47,6 @@
 #define LCD_DISP_ON		MXS_PIN_TO_GPIO(PINID_GPMI_CE3N)
 #define LCD_BL_ENABLE	MXS_PIN_TO_GPIO(PINID_AUART0_CTS)
 
-#if defined(CONFIG_GPIO_PCA953X) || \
-	defined(CONFIG_GPIO_PCA953X_MODULE)
-
-#include <linux/i2c/pca953x.h>
-
-#define PCA9534_GPIO_BASE	160
-#define PCA9534_PIN(n)		(PCA9534_GPIO_BASE + n)
-
-int pca953x_setup(struct i2c_client *client,
-				unsigned gpio, unsigned ngpio,
-				void *context)
-{
-	gpio_request(PCA9534_PIN(0),"pca-pin0");
-	gpio_direction_input(PCA9534_PIN(0));
-	gpio_set_value(PCA9534_PIN(0), 1);
-	gpio_free(PCA9534_PIN(0));
-
-	gpio_request(PCA9534_PIN(1),"pca-pin1");
-	gpio_direction_input(PCA9534_PIN(1));
-	gpio_set_value(PCA9534_PIN(1), 1);
-	gpio_free(PCA9534_PIN(1));
-
-	gpio_request(PCA9534_PIN(2),"pca-pin2");
-	gpio_direction_input(PCA9534_PIN(2));
-	gpio_set_value(PCA9534_PIN(2), 1);
-	gpio_free(PCA9534_PIN(2));
-
-	gpio_request(PCA9534_PIN(3),"pca-pin3");
-	gpio_direction_input(PCA9534_PIN(3));
-	gpio_set_value(PCA9534_PIN(3), 1);
-	gpio_free(PCA9534_PIN(3));
-
-	gpio_request(PCA9534_PIN(4),"pca-pin4");
-	gpio_direction_input(PCA9534_PIN(4));
-	gpio_set_value(PCA9534_PIN(4), 1);
-	gpio_free(PCA9534_PIN(4));
-
-	gpio_request(PCA9534_PIN(5),"pca-pin5");
-	gpio_direction_input(PCA9534_PIN(5));
-	gpio_set_value(PCA9534_PIN(5), 1);
-	gpio_free(PCA9534_PIN(5));
-
-	gpio_request(PCA9534_PIN(6),"pca-pin6");
-	gpio_direction_input(PCA9534_PIN(6));
-	gpio_set_value(PCA9534_PIN(6), 1);
-	gpio_free(PCA9534_PIN(6));
-
-	gpio_request(PCA9534_PIN(7),"pca-pin7");
-	gpio_direction_input(PCA9534_PIN(7));
-	gpio_set_value(PCA9534_PIN(7), 1);
-	gpio_free(PCA9534_PIN(7));
-
-	return 0;
-}
-
-static struct pca953x_platform_data pca9534_data = {
-		.invert = 1,
-		.gpio_base = PCA9534_GPIO_BASE,
-		.setup = &pca953x_setup,
-};
-#endif
-
 #if defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH) || \
 	defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH_MODULE)
 
@@ -174,13 +112,6 @@ static struct i2c_board_info __initdata mxs_i2c_device[] = {
 		I2C_BOARD_INFO("pcf8523", 0x68), 
 		.flags = I2C_M_TEN,
 	},
-#if defined(CONFIG_GPIO_PCA953X) || \
-	defined(CONFIG_GPIO_PCA953X_MODULE)
-	{ 
-		I2C_BOARD_INFO("pca9534", 0x3E),
-		.platform_data = &pca9534_data,
-	},
-#endif
 #if defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH) || \
 	defined(CONFIG_TOUCHSCREEN_SITRONIX_I2C_TOUCH_MODULE)
 	{
