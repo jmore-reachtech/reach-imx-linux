@@ -1,5 +1,5 @@
 /*
- * Copyright 2008-2011 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2008-2012 Freescale Semiconductor, Inc. All Rights Reserved.
  */
 
 /*
@@ -598,6 +598,11 @@ static struct resource mxcspi1_resources[] = {
 		.flags = IORESOURCE_IRQ,
 	},
 	{
+		.start = MXC_DMA_CSPI1_RX,
+		.end = MXC_DMA_CSPI1_RX,
+		.flags = IORESOURCE_DMA,
+	},
+	{
 		.start = MXC_DMA_CSPI1_TX,
 		.end = MXC_DMA_CSPI1_TX,
 		.flags = IORESOURCE_DMA,
@@ -626,6 +631,11 @@ static struct resource mxcspi2_resources[] = {
 		.start = MXC_INT_CSPI2,
 		.end = MXC_INT_CSPI2,
 		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = MXC_DMA_CSPI2_RX,
+		.end = MXC_DMA_CSPI2_RX,
+		.flags = IORESOURCE_DMA,
 	},
 	{
 		.start = MXC_DMA_CSPI2_TX,
@@ -1840,6 +1850,8 @@ int __init mxc_init_devices(void)
 		ssi1_resources[0].end -= MX53_OFFSET;
 		ssi2_resources[0].start -= MX53_OFFSET;
 		ssi2_resources[0].end -= MX53_OFFSET;
+		ssi3_resources[0].start -= MX53_OFFSET;
+		ssi3_resources[0].end -= MX53_OFFSET;
 		esai_resources[0].start -= MX53_OFFSET;
 		esai_resources[0].end -= MX53_OFFSET;
 		tve_resources[0].start -= MX53_OFFSET;
