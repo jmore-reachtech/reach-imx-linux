@@ -68,7 +68,7 @@ static struct pin_desc mx28canby_fixed_pins[] = {
      .fun   = PIN_FUN1,
      },
 #endif
-#ifdef CONFIG_MXS_AUART2_DEVICE_ENABLE
+#if defined(CONFIG_MXS_AUART2_DEVICE_ENABLE) && defined(CONFIG_MX28_CANBY_AUART2)
 	{
 	 .name	= "AUART2.RX",
 	 .id	= PINID_SSP2_SCK,
@@ -875,7 +875,7 @@ static struct pin_desc mx28canby_gpmi_pins[] = {
 
 #if defined(CONFIG_SPI_MXS) || defined(CONFIG_SPI_MXS_MODULE)
 static struct pin_desc mx28canby_spi_pins[] = {
-/* used for AUART2
+#ifdef defined(CONFIG_MX28_CANBY_SPI)
 	{
 	 .name	= "SSP2 MOSI",
 	 .id	= PINID_SSP2_MOSI,
@@ -884,7 +884,7 @@ static struct pin_desc mx28canby_spi_pins[] = {
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
-*/
+#endif
 	{
 	 .name	= "SSP2 MISO",
 	 .id	= PINID_SSP2_MISO,
@@ -893,7 +893,7 @@ static struct pin_desc mx28canby_spi_pins[] = {
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
-/* used for AUART2
+#ifdef defined(CONFIG_MX28_CANBY_SPI)
 	{
 	 .name	= "SSP2 SCK",
 	 .id	= PINID_SSP2_SCK,
@@ -902,7 +902,7 @@ static struct pin_desc mx28canby_spi_pins[] = {
 	 .voltage	= PAD_3_3V,
 	 .drive 	= 1,
 	 },
-*/
+#endif
 	{
 	 .name	= "SSP2 SS0",
 	 .id	= PINID_SSP2_SS0,

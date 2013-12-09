@@ -13,6 +13,23 @@ config MACH_MX28_CANBY
 
 endchoice
 
+if MACH_MX28_CANBY
+
+choice
+	prompt "Select G2C J9 Option"
+
+config MX28_CANBY_SPI
+	bool "Set J9 for SPI"
+	depends on ARCH_MX28
+
+config MX28_CANBY_AUART2
+	bool "Set J9 for AUART2"
+	depends on ARCH_MX28
+
+endchoice
+
+endif
+
 config VECTORS_PHY_ADDR
 	int "vectors address"
 	default 0
