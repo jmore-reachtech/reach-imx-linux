@@ -26,3 +26,17 @@ config FB_MXS_TVENC
 	bool "TVENC"
 	---help---
 	  Use TVOUT encoder for MXS
+choice
+  
+  prompt "Choose 16 bit mode"
+  depends on FB_MXS_LCD_43WVF1G
+  default FB_CANBY_24BIT
+
+  config FB_CANBY_24BIT
+    bool "24 Bit defaults"
+  config FB_CANBY_16BIT
+    bool "16 Bit FB"
+  config FB_CANBY_18BIT
+    bool "18 Bit Output"
+endchoice
+

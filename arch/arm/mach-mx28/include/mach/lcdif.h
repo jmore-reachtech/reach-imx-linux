@@ -36,7 +36,6 @@
 #include "regs-lcdif.h"
 
 #define REGS_LCDIF_BASE IO_ADDRESS(LCDIF_PHYS_ADDR)
-
 enum {
 	SPI_MOSI = 0,
 	SPI_SCLK,
@@ -174,11 +173,18 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 
 	__raw_writel(BM_LCDIF_CTRL1_BYTE_PACKING_FORMAT,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
-	__raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(7) |
+	
+#if defined(CONFIG_FB_CANBY_16BIT) || defined(CONFIG_FB_CANBY_18BIT)
+        __raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(0x0f) |
 		     BM_LCDIF_CTRL1_RECOVER_ON_UNDERFLOW,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);
-
-	val = __raw_readl(REGS_LCDIF_BASE + HW_LCDIF_TRANSFER_COUNT);
+#else
+        __raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(7) |
+		     BM_LCDIF_CTRL1_RECOVER_ON_UNDERFLOW,
+		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);
+#endif
+	
+        val = __raw_readl(REGS_LCDIF_BASE + HW_LCDIF_TRANSFER_COUNT);
 	val &= ~(BM_LCDIF_TRANSFER_COUNT_V_COUNT |
 		 BM_LCDIF_TRANSFER_COUNT_H_COUNT);
 	val |= BF_LCDIF_TRANSFER_COUNT_H_COUNT(h_active) |
@@ -200,11 +206,26 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 		     BM_LCDIF_CTRL_INPUT_DATA_SWIZZLE |
 		     BM_LCDIF_CTRL_LCD_DATABUS_WIDTH,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
-	__raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(3) |	/* 24 bit */
+        __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(3) |	/* 24 bit */
 		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
 		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
 		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(3),	/* 24 bit */
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+	
+#ifdef CONFIG_FB_CANBY_16BIT
+        __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(0) |	/* 16 bit */
+		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
+		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
+		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(0),	/* 16 bit */
+		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+#endif
+#ifdef CONFIG_FB_CANBY_18BIT
+        __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(0) |	/* 16 bit */
+		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
+		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
+		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(2),	/* 18 bit */
+		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+#endif
 
 	val = __raw_readl(REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0);
 	val &= ~(BM_LCDIF_VDCTRL0_VSYNC_POL |

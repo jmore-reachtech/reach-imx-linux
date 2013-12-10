@@ -31,16 +31,16 @@
 #include <mach/system.h>
 
 #define DOTCLK_H_ACTIVE  800
-#define DOTCLK_H_PULSE_WIDTH 10
-#define DOTCLK_HF_PORCH  164
-#define DOTCLK_HB_PORCH  89
+#define DOTCLK_H_PULSE_WIDTH 48
+#define DOTCLK_HF_PORCH  40
+#define DOTCLK_HB_PORCH  40
 #define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
 #define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
 
 #define DOTCLK_V_ACTIVE  480
-#define DOTCLK_V_PULSE_WIDTH  10
-#define DOTCLK_VF_PORCH  10
-#define DOTCLK_VB_PORCH  23
+#define DOTCLK_V_PULSE_WIDTH  3
+#define DOTCLK_VF_PORCH  13
+#define DOTCLK_VB_PORCH  29
 #define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
 #define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
 
@@ -144,7 +144,23 @@ static int blank_panel(int blank)
 	}
 	return ret;
 }
-
+#if defined(CONFIG_FB_CANBY_16BIT) || defined(CONFIG_FB_CANBY_18BIT)
+static struct mxs_platform_fb_entry fb_entry = {
+	.name = "43wvf1g",
+	.x_res = 480,
+	.y_res = 800,
+	.bpp = 16,
+	.cycle_time_ns = 30,
+	.lcd_type = MXS_LCD_PANEL_DOTCLK,
+	.init_panel = init_panel,
+	.release_panel = release_panel,
+	.blank_panel = blank_panel,
+	.run_panel = mxs_lcdif_run,
+	.stop_panel = mxs_lcdif_stop,
+	.pan_display = mxs_lcdif_pan_display,
+	.bl_data = &bl_data,
+};
+#else
 static struct mxs_platform_fb_entry fb_entry = {
 	.name = "43wvf1g",
 	.x_res = 480,
@@ -160,7 +176,7 @@ static struct mxs_platform_fb_entry fb_entry = {
 	.pan_display = mxs_lcdif_pan_display,
 	.bl_data = &bl_data,
 };
-
+#endif
 static struct clk *pwm_clk;
 
 static int init_bl(struct mxs_platform_bl_data *data)
