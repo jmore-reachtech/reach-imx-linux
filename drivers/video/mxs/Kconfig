@@ -35,8 +35,8 @@ choice
   config FB_CANBY_24BIT
     bool "24 Bit defaults"
   config FB_CANBY_16BIT
-    bool "16 Bit FB"
+    bool "16 Bit FB and Output"
   config FB_CANBY_18BIT
-    bool "18 Bit Output"
+    bool "16 Bit FB and 18 Bit Output"
 endchoice
 
