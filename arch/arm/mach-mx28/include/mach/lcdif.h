@@ -174,7 +174,7 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 	__raw_writel(BM_LCDIF_CTRL1_BYTE_PACKING_FORMAT,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
 	
-#if defined(CONFIG_FB_CANBY_16BIT) || defined(CONFIG_FB_CANBY_18BIT)
+#ifdef CONFIG_FB_CANBY_16BIT
         __raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(0x0f) |
 		     BM_LCDIF_CTRL1_RECOVER_ON_UNDERFLOW,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);
@@ -213,13 +213,6 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
 	
 #ifdef CONFIG_FB_CANBY_16BIT
-        __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(0) |	/* 16 bit */
-		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
-		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
-		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(0),	/* 16 bit */
-		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
-#endif
-#ifdef CONFIG_FB_CANBY_18BIT
         __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(0) |	/* 16 bit */
 		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
 		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */

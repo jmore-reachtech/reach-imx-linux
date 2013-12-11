@@ -144,7 +144,7 @@ static int blank_panel(int blank)
 	}
 	return ret;
 }
-#if defined(CONFIG_FB_CANBY_16BIT) || defined(CONFIG_FB_CANBY_18BIT)
+#ifdef CONFIG_FB_CANBY_16BIT
 static struct mxs_platform_fb_entry fb_entry = {
 	.name = "43wvf1g",
 	.x_res = 480,
