@@ -226,6 +226,13 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(2),	/* 18 bit */
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
 #endif
+#ifdef CONFIG_FB_CANBY_24BIT
+        __raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(3) |	/* 24 bit */
+		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
+		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
+		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(2),	/* 18 bit */
+		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+#endif
 
 	val = __raw_readl(REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0);
 	val &= ~(BM_LCDIF_VDCTRL0_VSYNC_POL |
