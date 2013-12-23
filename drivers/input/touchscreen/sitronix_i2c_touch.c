@@ -395,76 +395,39 @@ static int	sitronix_ts_get_status(struct sitronix_ts_data *ts, uint8_t *status)
 	return ret;
 }
 
+/* Currently we only need single touch so just read the one finger
+ */
 static void sitronix_ts_work_func(struct work_struct *work)
 {
-	int i;
-	uint8_t	status = 0xff;
-	int	status_check_cnt = 500;
-#ifdef SITRONIX_TOUCH_KEY
-	int j;
-#endif // SITRONIX_TOUCH_KEY
 	int ret;
 	struct sitronix_ts_data *ts = container_of(work, struct sitronix_ts_data, work);
 	uint8_t buffer[2+ SITRONIX_MAX_SUPPORTED_POINT * PIXEL_DATA_LENGTH_A];
 	uint8_t PixelCount = 0;
 	static MTD_STRUCTURE MTDStructure[SITRONIX_MAX_SUPPORTED_POINT]={{0}};
 
-
 	DbgMsg("%s\n",  __FUNCTION__);
-	if(ts->get_int_status)
-		if(ts->get_int_status())
-		{
-			goto exit_invalid_data;
-		}
 
-	/* first get status of the device */
-	while(status_check_cnt--)
-	{
-		status = 0xff;
-		if ( sitronix_ts_get_status(ts, &status) < 0 )
-			goto exit_invalid_data;
-
-		if ( (status & 0xf) >= 6 )
-		{
-			/* reserved values. cannot be here*/
-			printk("sitronix_ts_work_func. device status register=0x%x reporting invalid values\n", status);
-			goto exit_invalid_data;
-		}
-
-		if ( (status & 0xf) == 0 ) /* normal */
-			break; /* ok */
-
-		if ( (status & 0xf) == 1 ) /* still initializing */
-			continue;
-
-		if ( (status & 0xf) == 2 ) /* error */
-		{
-			printk("sitronix_ts_work_func. device status register=0x%x showing error\n",
-				status);
-			goto exit_invalid_data;
-		}
-	}
-
-#if 1
 	// get finger count
 	buffer[0] = FINGERS;
 	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0)
+	if (ret < 0) {
 		printk("send finger command error (%d)\n", ret);
+		goto exit_invalid_data;
+	}
 	ret = i2c_master_recv(ts->client, buffer, 1);
 	if (ret < 0) {
 		printk("read finger error (%d)\n", ret);
 		goto exit_invalid_data;
-	}else{
+	} else {
 		PixelCount = buffer[0] & FINGERS_BMSK ;
-		//printk("fingers = %d\n", PixelCount);
+		DbgMsg("%s: fingers = %d\n",__FUNCTION__ PixelCount);
 	}
 
 	if ( PixelCount == 0 ) {
 		input_report_abs(ts->input_dev, ABS_X, 0);
 		input_report_abs(ts->input_dev, ABS_Y, 0);
 		input_report_abs(ts->input_dev, ABS_PRESSURE, 0);
-		input_mt_sync(ts->input_dev);
+		input_sync(ts->input_dev);
 		goto exit_invalid_data;
 	}
 
@@ -474,159 +437,31 @@ static void sitronix_ts_work_func(struct work_struct *work)
 		*  tslib. Please remove this restriction once multi touch support is
 		*  provided
 		*/
-		//printk("sitronix_ts_work_func. Multi-touch detected. Number of touches reported in FINGERS register=%d\n", PixelCount);
-		printk("%s: 2 fingers!\n",__func__);
-
-		//goto exit_invalid_data;
+		DbgMsg("%s: 2 fingers!\n",__func__);
 	}
-#endif
-#ifdef SITRONIX_SENSOR_KEY
-	buffer[0] = KEYS_REG;
-	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0)
-		printk("send key command error (%d)\n", ret);
-	ret = i2c_master_recv(ts->client, buffer, 1);
-	if (ret < 0) {
-		printk("read key error (%d)\n", ret);
-		goto exit_invalid_data;
-	}else{
-		DbgMsg("key = 0x%x\n", buffer[0]);
-	}
-	for(i = 0; i < SITRONIX_NUMBER_SENSOR_KEY; i++){
-		if(buffer[0] & (1 << i)){
-			DbgMsg("key[%d] down\n", i);
-			input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 1);
-		}else{
-			DbgMsg("key[%d] up\n", i);
-			input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 0);
-		}
-	}
-#endif // SITRONIX_SENSOR_KEY
+	
+	// get XY
 	buffer[0] = XY0_COORD_H;
 	ret = i2c_master_send(ts->client, buffer, 1);
-	if (ret < 0)
+	if (ret < 0) {
 		printk("send coordination command error (%d)\n", ret);
+		goto exit_invalid_data;
+	}
 
 	ret = i2c_master_recv(ts->client, buffer, ts->max_touches * ts->pixel_length);
 	if (ret < 0) {
 		printk("read coordination error (%d)\n", ret);
 		goto exit_invalid_data;
 	}
-
-	for(i = 0; i < ts->max_touches; i++){
-		MTDStructure[i].Pixel_X = ((buffer[ts->pixel_length * i] & (X_COORD_H_BMSK << X_COORD_H_SHFT)) << 4) |  (buffer[ts->pixel_length * i + X_COORD_L]);
-		MTDStructure[i].Pixel_Y = ((buffer[ts->pixel_length * i] & Y_COORD_H_BMSK) << 8) |  (buffer[ts->pixel_length * i + Y_COORD_L]);
-#ifndef SITRONIX_TOUCH_KEY
-		if((buffer[ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1)
-			MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
-		else
-			MTDStructure[i].Current_Pressed_area = AREA_NONE;
-#else
-		if((buffer[ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1){
-			MTDStructure[i].Current_Pressed_area = AREA_INVALID;
-            if((MTDStructure[i].Pixel_X < ts->resolution_x) && (MTDStructure[i].Pixel_Y < (ts->resolution_y - ts->resolution_y / SCALE_KEY_HIGH_Y))){
-				MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
-			}else{
-				for(j = 0; j < SITRONIX_NUMBER_TOUCH_KEY; j++){
-					if((MTDStructure[i].Pixel_X >= sitronix_key_array[j].x_low) &&
-					(MTDStructure[i].Pixel_X <= sitronix_key_array[j].x_high) &&
-					(MTDStructure[i].Pixel_Y >= sitronix_key_array[j].y_low) &&
-					(MTDStructure[i].Pixel_Y <= sitronix_key_array[j].y_high)){
-						MTDStructure[i].Current_Pressed_area = AREA_KEY;
-						MTDStructure[i].Current_key_index = j;
-						break;
-					}
-				}
-			}
-		}else{
-			MTDStructure[i].Current_Pressed_area = AREA_NONE;
-		}
-#endif // SITRONIX_TOUCH_KEY
-
+	
+	MTDStructure[0].Pixel_X = ((buffer[0] & (X_COORD_H_BMSK << X_COORD_H_SHFT)) << 4) |  (buffer[X_COORD_L]);
+	MTDStructure[0].Pixel_Y = ((buffer[0] & Y_COORD_H_BMSK) << 8) |  (buffer[Y_COORD_L]);
+	if ((MTDStructure[0].Pixel_X != 0) && ((271 - MTDStructure[0].Pixel_Y) != 0)) {
+		input_report_abs(ts->input_dev, ABS_X, MTDStructure[0].Pixel_X);
+		input_report_abs(ts->input_dev, ABS_Y, 271-MTDStructure[0].Pixel_Y);
+		input_report_abs(ts->input_dev, ABS_PRESSURE, 255);
+		input_sync(ts->input_dev);
 	}
-
-	for (i = 0; i < ts->max_touches; i++) {
-		if ((MTDStructure[i].Pixel_X != 0) && ((271 - MTDStructure[i].Pixel_Y) != 0)) {
-			input_report_abs(ts->input_dev, ABS_X, MTDStructure[i].Pixel_X);
-			input_report_abs(ts->input_dev, ABS_Y, 271-MTDStructure[i].Pixel_Y);
-			input_report_abs(ts->input_dev, ABS_PRESSURE, 255);
-			break;
-		}
-	}
-
-	for(i = 0; i < ts->max_touches; i++){
-#ifndef SITRONIX_TOUCH_KEY
-		input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-		input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-		input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
-
-		if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
-			input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-			DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-			input_mt_sync(ts->input_dev);
-		//}else if((MTDStructure[i].Current_Pressed_area == AREA_NONE)&&(sitronix_ts_gMTDPreStructure[i].Current_Pressed_area == AREA_DISPLAY)){
-		}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
-			input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-			DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-			input_mt_sync(ts->input_dev);
-		}
-		memcpy(&sitronix_ts_gMTDPreStructure[i], &MTDStructure[i], sizeof(MTD_STRUCTURE));
-#else
-		if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_NONE){
-			if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
-				input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
-				input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-				input_mt_sync(ts->input_dev);
-				sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_DISPLAY;
-				DbgMsg("[%d](%d, %d)\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-			}else if(MTDStructure[i].Current_Pressed_area == AREA_KEY){
-				sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_KEY;
-				sitronix_ts_gMTDPreStructure[i].First_key_index = MTDStructure[i].Current_key_index;
-				input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 1);
-				DbgMsg("key [%d] down\n", MTDStructure[i].Current_key_index);
-			}
-		}else if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_DISPLAY){
-			if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
-				input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
-				input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
-				input_mt_sync(ts->input_dev);
-				DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-			}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
-				input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
-				input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
-				input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
-				input_mt_sync(ts->input_dev);
-				DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
-				sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-			}
-		}else if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_KEY){
-			if(MTDStructure[i].Current_Pressed_area == AREA_KEY){
-				if(sitronix_ts_gMTDPreStructure[i].First_key_index == MTDStructure[i].Current_key_index){
-					input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 1);
-					DbgMsg("key [%d] down+\n", MTDStructure[i].Current_key_index);
-				}
-			}else if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
-				input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 0);
-				DbgMsg("key [%d] up\n", MTDStructure[i].Current_key_index);
-				//sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-			}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
-				input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 0);
-				DbgMsg("key [%d] up\n", MTDStructure[i].Current_key_index);
-				sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
-			}
-		}
-		//sitronix_ts_gMTDPreStructure[i].Pixel_X = MTDStructure[i].Pixel_X;
-		//sitronix_ts_gMTDPreStructure[i].Pixel_Y = MTDStructure[i].Pixel_Y;
-		//sitronix_ts_gMTDPreStructure[i].Current_Pressed_area = MTDStructure[i].Current_Pressed_area;
-		//sitronix_ts_gMTDPreStructure[i].Current_key_index = MTDStructure[i].Current_key_index;
-#endif // SITRONIX_TOUCH_KEY
-	}
-	input_sync(ts->input_dev);
 
 exit_invalid_data:
 #ifdef SITRONIX_LEVEL_TRIGGERED
@@ -634,6 +469,249 @@ exit_invalid_data:
 		enable_irq(gpio_to_irq(ts->client->irq));
 #endif // SITRONIX_LEVEL_TRIGGERED
 }
+
+/* This the original work function. This function is missing tocuhes but
+ * is kept here for reference.
+ * */
+//static void sitronix_ts_work_func(struct work_struct *work)
+//{
+	//int i;
+	//uint8_t	status = 0xff;
+	//int	status_check_cnt = 500;
+//#ifdef SITRONIX_TOUCH_KEY
+	//int j;
+//#endif // SITRONIX_TOUCH_KEY
+	//int ret;
+	//struct sitronix_ts_data *ts = container_of(work, struct sitronix_ts_data, work);
+	//uint8_t buffer[2+ SITRONIX_MAX_SUPPORTED_POINT * PIXEL_DATA_LENGTH_A];
+	//uint8_t PixelCount = 0;
+	//static MTD_STRUCTURE MTDStructure[SITRONIX_MAX_SUPPORTED_POINT]={{0}};
+
+
+	//DbgMsg("%s\n",  __FUNCTION__);
+	//if(ts->get_int_status)
+		//if(ts->get_int_status())
+		//{
+			//goto exit_invalid_data;
+		//}
+
+	///* first get status of the device */
+	//while(status_check_cnt--)
+	//{
+		//status = 0xff;
+		//if ( sitronix_ts_get_status(ts, &status) < 0 )
+			//goto exit_invalid_data;
+
+		//if ( (status & 0xf) >= 6 )
+		//{
+			///* reserved values. cannot be here*/
+			//printk("sitronix_ts_work_func. device status register=0x%x reporting invalid values\n", status);
+			//goto exit_invalid_data;
+		//}
+
+		//if ( (status & 0xf) == 0 ) /* normal */
+			//break; /* ok */
+
+		//if ( (status & 0xf) == 1 ) /* still initializing */
+			//continue;
+
+		//if ( (status & 0xf) == 2 ) /* error */
+		//{
+			//printk("sitronix_ts_work_func. device status register=0x%x showing error\n",
+				//status);
+			//goto exit_invalid_data;
+		//}
+	//}
+
+//#if 1
+	//// get finger count
+	//buffer[0] = FINGERS;
+	//ret = i2c_master_send(ts->client, buffer, 1);
+	//if (ret < 0)
+		//printk("send finger command error (%d)\n", ret);
+	//ret = i2c_master_recv(ts->client, buffer, 1);
+	//if (ret < 0) {
+		//printk("read finger error (%d)\n", ret);
+		//goto exit_invalid_data;
+	//}else{
+		//PixelCount = buffer[0] & FINGERS_BMSK ;
+		////printk("fingers = %d\n", PixelCount);
+	//}
+
+	//if ( PixelCount == 0 ) {
+		//input_report_abs(ts->input_dev, ABS_X, 0);
+		//input_report_abs(ts->input_dev, ABS_Y, 0);
+		//input_report_abs(ts->input_dev, ABS_PRESSURE, 0);
+		//input_mt_sync(ts->input_dev);
+		//goto exit_invalid_data;
+	//}
+
+	//if ( PixelCount != 1 )
+	//{
+		///* We currently do not support multi-touch because of limitations with
+		//*  tslib. Please remove this restriction once multi touch support is
+		//*  provided
+		//*/
+		////printk("sitronix_ts_work_func. Multi-touch detected. Number of touches reported in FINGERS register=%d\n", PixelCount);
+		//printk("%s: 2 fingers!\n",__func__);
+
+		////goto exit_invalid_data;
+	//}
+//#endif
+//#ifdef SITRONIX_SENSOR_KEY
+	//buffer[0] = KEYS_REG;
+	//ret = i2c_master_send(ts->client, buffer, 1);
+	//if (ret < 0)
+		//printk("send key command error (%d)\n", ret);
+	//ret = i2c_master_recv(ts->client, buffer, 1);
+	//if (ret < 0) {
+		//printk("read key error (%d)\n", ret);
+		//goto exit_invalid_data;
+	//}else{
+		//DbgMsg("key = 0x%x\n", buffer[0]);
+	//}
+	//for(i = 0; i < SITRONIX_NUMBER_SENSOR_KEY; i++){
+		//if(buffer[0] & (1 << i)){
+			//DbgMsg("key[%d] down\n", i);
+			//input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 1);
+		//}else{
+			//DbgMsg("key[%d] up\n", i);
+			//input_report_key(ts->keyevent_input, sitronix_sensor_key[i], 0);
+		//}
+	//}
+//#endif // SITRONIX_SENSOR_KEY
+	//buffer[0] = XY0_COORD_H;
+	//ret = i2c_master_send(ts->client, buffer, 1);
+	//if (ret < 0)
+		//printk("send coordination command error (%d)\n", ret);
+
+	//ret = i2c_master_recv(ts->client, buffer, ts->max_touches * ts->pixel_length);
+	//if (ret < 0) {
+		//printk("read coordination error (%d)\n", ret);
+		//goto exit_invalid_data;
+	//}
+
+	//for(i = 0; i < ts->max_touches; i++){
+		//MTDStructure[i].Pixel_X = ((buffer[ts->pixel_length * i] & (X_COORD_H_BMSK << X_COORD_H_SHFT)) << 4) |  (buffer[ts->pixel_length * i + X_COORD_L]);
+		//MTDStructure[i].Pixel_Y = ((buffer[ts->pixel_length * i] & Y_COORD_H_BMSK) << 8) |  (buffer[ts->pixel_length * i + Y_COORD_L]);
+//#ifndef SITRONIX_TOUCH_KEY
+		//if((buffer[ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1)
+			//MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
+		//else
+			//MTDStructure[i].Current_Pressed_area = AREA_NONE;
+//#else
+		//if((buffer[ts->pixel_length * i] >> X_COORD_VALID_SHFT) == 1){
+			//MTDStructure[i].Current_Pressed_area = AREA_INVALID;
+            //if((MTDStructure[i].Pixel_X < ts->resolution_x) && (MTDStructure[i].Pixel_Y < (ts->resolution_y - ts->resolution_y / SCALE_KEY_HIGH_Y))){
+				//MTDStructure[i].Current_Pressed_area = AREA_DISPLAY;
+			//}else{
+				//for(j = 0; j < SITRONIX_NUMBER_TOUCH_KEY; j++){
+					//if((MTDStructure[i].Pixel_X >= sitronix_key_array[j].x_low) &&
+					//(MTDStructure[i].Pixel_X <= sitronix_key_array[j].x_high) &&
+					//(MTDStructure[i].Pixel_Y >= sitronix_key_array[j].y_low) &&
+					//(MTDStructure[i].Pixel_Y <= sitronix_key_array[j].y_high)){
+						//MTDStructure[i].Current_Pressed_area = AREA_KEY;
+						//MTDStructure[i].Current_key_index = j;
+						//break;
+					//}
+				//}
+			//}
+		//}else{
+			//MTDStructure[i].Current_Pressed_area = AREA_NONE;
+		//}
+//#endif // SITRONIX_TOUCH_KEY
+
+	//}
+
+	//for (i = 0; i < ts->max_touches; i++) {
+		//if ((MTDStructure[i].Pixel_X != 0) && ((271 - MTDStructure[i].Pixel_Y) != 0)) {
+			//input_report_abs(ts->input_dev, ABS_X, MTDStructure[i].Pixel_X);
+			//input_report_abs(ts->input_dev, ABS_Y, 271-MTDStructure[i].Pixel_Y);
+			//input_report_abs(ts->input_dev, ABS_PRESSURE, 255);
+			//break;
+		//}
+	//}
+
+	//for(i = 0; i < ts->max_touches; i++){
+//#ifndef SITRONIX_TOUCH_KEY
+		//input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
+		//input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
+		//input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
+
+		//if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
+			//input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
+			//DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
+			//input_mt_sync(ts->input_dev);
+		////}else if((MTDStructure[i].Current_Pressed_area == AREA_NONE)&&(sitronix_ts_gMTDPreStructure[i].Current_Pressed_area == AREA_DISPLAY)){
+		//}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
+			//input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
+			//DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
+			//input_mt_sync(ts->input_dev);
+		//}
+		//memcpy(&sitronix_ts_gMTDPreStructure[i], &MTDStructure[i], sizeof(MTD_STRUCTURE));
+//#else
+		//if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_NONE){
+			//if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
+				//input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
+				//input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
+				//input_mt_sync(ts->input_dev);
+				//sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_DISPLAY;
+				//DbgMsg("[%d](%d, %d)\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
+			//}else if(MTDStructure[i].Current_Pressed_area == AREA_KEY){
+				//sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_KEY;
+				//sitronix_ts_gMTDPreStructure[i].First_key_index = MTDStructure[i].Current_key_index;
+				//input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 1);
+				//DbgMsg("key [%d] down\n", MTDStructure[i].Current_key_index);
+			//}
+		//}else if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_DISPLAY){
+			//if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
+				//input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
+				//input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 1);
+				//input_mt_sync(ts->input_dev);
+				//DbgMsg("[%d](%d, %d)+\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
+			//}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
+				//input_report_abs(ts->input_dev,  ABS_MT_TRACKING_ID, i);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_X, MTDStructure[i].Pixel_X);
+				//input_report_abs(ts->input_dev,  ABS_MT_POSITION_Y, MTDStructure[i].Pixel_Y);
+				//input_report_abs(ts->input_dev,  ABS_MT_TOUCH_MAJOR, 0);
+				//input_mt_sync(ts->input_dev);
+				//DbgMsg("[%d](%d, %d)-\n", i, MTDStructure[i].Pixel_X, MTDStructure[i].Pixel_Y);
+				//sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
+			//}
+		//}else if(sitronix_ts_gMTDPreStructure[i].First_Pressed_area == AREA_KEY){
+			//if(MTDStructure[i].Current_Pressed_area == AREA_KEY){
+				//if(sitronix_ts_gMTDPreStructure[i].First_key_index == MTDStructure[i].Current_key_index){
+					//input_report_key(ts->keyevent_input, sitronix_key_array[sitronix_ts_gMTDPreStructure[i].First_key_index].code, 1);
+					//DbgMsg("key [%d] down+\n", MTDStructure[i].Current_key_index);
+				//}
+			//}else if(MTDStructure[i].Current_Pressed_area == AREA_DISPLAY){
+				//input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 0);
+				//DbgMsg("key [%d] up\n", MTDStructure[i].Current_key_index);
+				////sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
+			//}else if(MTDStructure[i].Current_Pressed_area == AREA_NONE){
+				//input_report_key(ts->keyevent_input, sitronix_key_array[MTDStructure[i].Current_key_index].code, 0);
+				//DbgMsg("key [%d] up\n", MTDStructure[i].Current_key_index);
+				//sitronix_ts_gMTDPreStructure[i].First_Pressed_area = AREA_NONE;
+			//}
+		//}
+		////sitronix_ts_gMTDPreStructure[i].Pixel_X = MTDStructure[i].Pixel_X;
+		////sitronix_ts_gMTDPreStructure[i].Pixel_Y = MTDStructure[i].Pixel_Y;
+		////sitronix_ts_gMTDPreStructure[i].Current_Pressed_area = MTDStructure[i].Current_Pressed_area;
+		////sitronix_ts_gMTDPreStructure[i].Current_key_index = MTDStructure[i].Current_key_index;
+//#endif // SITRONIX_TOUCH_KEY
+	//}
+	//input_sync(ts->input_dev);
+
+//exit_invalid_data:
+//#ifdef SITRONIX_LEVEL_TRIGGERED
+	//if (ts->use_irq)
+		//enable_irq(gpio_to_irq(ts->client->irq));
+//#endif // SITRONIX_LEVEL_TRIGGERED
+//}
 
 
 static irqreturn_t sitronix_ts_irq_handler(int irq, void *dev_id)
