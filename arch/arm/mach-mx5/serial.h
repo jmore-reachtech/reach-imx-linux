@@ -22,7 +22,7 @@
  * this value. When using interrupt-driven software controlled hardware
  * flow control set this option to -1.
  */
-#define UART1_UCR4_CTSTL        16
+#define UART1_UCR4_CTSTL        -1
 /*!
  * Specify the size of the DMA receive buffer. The minimum buffer size is 512
  * bytes. The buffer size should be a multiple of 256.
@@ -42,28 +42,28 @@
  * value.
  */
 #define UART1_UFCR_TXTL         16
-#define UART1_DMA_ENABLE	0
+#define UART1_DMA_ENABLE		0
 /* UART 2 configuration */
 #define UART2_UCR4_CTSTL        -1
-#define UART2_DMA_ENABLE	0
+#define UART2_DMA_ENABLE		0
 #define UART2_DMA_RXBUFSIZE     512
 #define UART2_UFCR_RXTL         16
 #define UART2_UFCR_TXTL         16
 /* UART 3 configuration */
-#define UART3_UCR4_CTSTL        16
-#define UART3_DMA_ENABLE	1
-#define UART3_DMA_RXBUFSIZE     2048
+#define UART3_UCR4_CTSTL        -1
+#define UART3_DMA_ENABLE		0
+#define UART3_DMA_RXBUFSIZE     1024
 #define UART3_UFCR_RXTL         16
 #define UART3_UFCR_TXTL         16
 /* UART 4 configuration */
 #define UART4_UCR4_CTSTL        -1
-#define UART4_DMA_ENABLE	0
+#define UART4_DMA_ENABLE		0
 #define UART4_DMA_RXBUFSIZE     512
 #define UART4_UFCR_RXTL         16
 #define UART4_UFCR_TXTL         16
 /* UART 5 configuration */
 #define UART5_UCR4_CTSTL        -1
-#define UART5_DMA_ENABLE	0
+#define UART5_DMA_ENABLE		0
 #define UART5_DMA_RXBUFSIZE     512
 #define UART5_UFCR_RXTL         16
 #define UART5_UFCR_TXTL         16
