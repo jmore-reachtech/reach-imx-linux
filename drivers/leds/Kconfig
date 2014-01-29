@@ -40,6 +40,15 @@ config LEDS_MXS
 	  This option enables support for the LEDs connected to PWM
 	  outputs on the Freescale MXS SOC.
 
+if LEDS_MXS
+    config LEDS_MXS_BEEPER
+    tristate "Beeper support for G2C"
+    depends on LEDS_MXS
+    help
+        This add beeper support for G2C
+
+endif
+
 config LEDS_MC13892
 	tristate "LED Support for mc13892 pmic"
 	depends on LEDS_CLASS && MXC_MC13892_LIGHT
