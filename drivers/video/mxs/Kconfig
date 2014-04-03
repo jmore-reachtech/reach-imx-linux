@@ -38,3 +38,14 @@ choice
     bool "16 Bit FB 18 Bit Output"
 endchoice
 
+choice
+
+  prompt "Choose Dotclock Polarity"
+  depends on FB_MXS_LCD_LMS430
+  default FB_CANBY_INNOLUX
+
+  config FB_CANBY_INNOLUX
+    bool "Innolux Panel, captured on positive edge"
+  config FB_CANBY_KYOCERA
+    bool "Kyocera Panel, captured on falling edge"
+endchoice
