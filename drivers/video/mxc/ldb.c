@@ -104,7 +104,23 @@ struct ldb_data {
 static int g_ldb_mode;
 
 static struct fb_videomode ldb_modedb[] = {
-	{
+        {
+          .name                   = "LDB-VGA", 
+          .refresh                = 60, 
+          .xres                   = 640, 
+          .yres                   = 480, 
+          .pixclock               = 25200,
+          .left_margin    = 48, 
+          .right_margin   = 16,
+          .upper_margin   = 31, 
+          .lower_margin   = 11,
+          .hsync_len              = 96, 
+          .vsync_len              = 2,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+        },
+        {
 	/* 800x480 @ 60 Hz , pixel clk @ 32MHz */
 	 "LDB-WVGA", 60, 800, 480, 29850, 
 	 89, 164, 
@@ -469,7 +485,7 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 
 		/* TODO: now only use SPWG data mapping for both channel */
 		reg &= ~(LDB_BIT_MAP_CH0_MASK | LDB_BIT_MAP_CH1_MASK);
-		reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
+		reg |= LDB_BIT_MAP_CH0_JEIDA | LDB_BIT_MAP_CH1_JEIDA;
 
 		/* channel mode setting */
 		reg &= ~(LDB_CH0_MODE_MASK | LDB_CH1_MODE_MASK);

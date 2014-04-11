@@ -56,10 +56,13 @@ static int lcd_on;
 
 static struct fb_videomode video_modes[] = {
 	{
-	 /* 800x480 @ 57 Hz , pixel clk @ 32MHz */
-	 "SEIKO-WVGA", 60, 800, 480, 29850, 99, 164, 33, 10, 10, 10,
-	 FB_SYNC_CLK_LAT_FALL,
-	 FB_VMODE_NONINTERLACED,
+	 ///* 800x480 @ 57 Hz , pixel clk @ 32MHz */
+	 //"SEIKO-WVGA", 60, 800, 480, 29850, 99, 164, 33, 10, 10, 10,
+	 //FB_SYNC_CLK_LAT_FALL,
+	/* 480x640 @ 60 Hz */
+        "SEIKO-WVGA", 60, 640, 480, 41701, 60, 41, 10, 5, 20, 10,
+        0, 
+        FB_VMODE_NONINTERLACED,
 	 0,},
 };
 
@@ -90,12 +93,12 @@ static int lcd_fb_event(struct notifier_block *nb, unsigned long val, void *v)
 
 	switch (val) {
 	case FB_EVENT_BLANK:
-		if ((event->info->var.xres != 800) ||
+		if ((event->info->var.xres != 640) ||
 		    (event->info->var.yres != 480)) {
 			break;
 		}
 		if (*((int *)event->data) == FB_BLANK_UNBLANK)
-			lcd_poweron();
+                        lcd_poweron();
 		else
 			lcd_poweroff();
 		break;

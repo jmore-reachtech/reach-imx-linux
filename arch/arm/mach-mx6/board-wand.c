@@ -30,6 +30,12 @@
 #include <linux/memblock.h>
 #include <linux/phy.h>
 
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/map.h>
+#include <linux/mtd/partitions.h>
+
 #include <mach/ahci_sata.h>
 #include <mach/common.h>
 #include <mach/gpio.h>
@@ -48,7 +54,7 @@
 #define WAND_BT_WAKE		IMX_GPIO_NR(3, 14)
 #define WAND_BT_HOST_WAKE	IMX_GPIO_NR(3, 15)
 
-#define WAND_PCIE_NRST		IMX_GPIO_NR(3, 31)
+//#define WAND_PCIE_NRST		IMX_GPIO_NR(3, 31)
 
 #define WAND_RGMII_INT		IMX_GPIO_NR(1, 28)
 #define WAND_RGMII_RST		IMX_GPIO_NR(3, 29)
@@ -58,8 +64,8 @@
 #define WAND_SD3_WP		IMX_GPIO_NR(1, 10)
 
 #define WAND_USB_OTG_OC		IMX_GPIO_NR(1, 9)
-#define WAND_USB_OTG_PWR	IMX_GPIO_NR(3, 22)
-#define WAND_USB_H1_OC		IMX_GPIO_NR(3, 30)
+#define WAND_USB_OTG_PWR	IMX_GPIO_NR(3, 31)
+#define WAND_USB_H1_OC		IMX_GPIO_NR(1, 3)
 
 #define WAND_WL_REF_ON		IMX_GPIO_NR(2, 29)
 #define WAND_WL_RST_N		IMX_GPIO_NR(5, 2)
@@ -69,6 +75,8 @@
 
 #define WAND_MIPICSI_PWN	IMX_GPIO_NR(1, 6)
 #define WAND_MIPICSI_RESET	IMX_GPIO_NR(4, 14)
+
+#define WAND_ECSPI1_CS2         IMX_GPIO_NR(3, 24)
 
 
 /* Syntactic sugar for pad configuration */
@@ -168,6 +176,113 @@ static void wand_init_sd(void)
 }
 
 
+/******************************************************************
+*
+*       SPI NOR
+*
+*******************************************************************/
+static int wand_spi_cs[] = {
+        WAND_ECSPI1_CS2,
+};
+
+static const struct spi_imx_master wand_spi_data __initconst = {
+        .chipselect     = wand_spi_cs,
+        .num_chipselect = ARRAY_SIZE(wand_spi_cs),
+};
+
+#if defined(CONFIG_MTD_M25P80) || defined(CONFIG_MTD_M25P80_MODULE)
+static struct mtd_partition wand_spi_nor_partitions[] = {
+        {
+                .name   = "bootloader",
+                .offset = 0,
+                .size   = SZ_256K,
+        }, {
+                .name   = "bootenv",
+                .offset = MTDPART_OFS_APPEND,
+                .size   = SZ_8K,
+                .mask_flags = MTD_WRITEABLE,
+        }, {
+                .name   = "kernel",
+                .offset = MTDPART_OFS_NXTBLK,
+                .size   = MTDPART_SIZ_FULL,
+        },      
+};
+
+static struct flash_platform_data wand__spi_flash_data = {
+        .name = "m25p32",
+        .parts = wand_spi_nor_partitions,
+        .nr_parts = ARRAY_SIZE(wand_spi_nor_partitions),
+        .type = "m25p32",
+};
+#endif
+
+static struct spi_board_info wand_spi_nor_device[] __initdata = {
+#if defined(CONFIG_MTD_M25P80)
+        {
+                .modalias = "m25p80",
+                .max_speed_hz = 20000000, /* max spi clock (SCK) speed in HZ */
+                .bus_num = 0,
+                .chip_select = 0,
+                .platform_data = &wand__spi_flash_data,
+        },
+#endif
+};
+
+static void wand_spi_nor_init(void)
+{
+        /* ECSPI1 */
+        IMX6_SETUP_PAD( EIM_D17__ECSPI1_MISO );
+        IMX6_SETUP_PAD( EIM_D18__ECSPI1_MOSI );
+        IMX6_SETUP_PAD( EIM_D16__ECSPI1_SCLK );
+        IMX6_SETUP_PAD( EIM_D24__GPIO_3_24 );
+
+        spi_register_board_info(wand_spi_nor_device,
+                                ARRAY_SIZE(wand_spi_nor_device));
+}
+
+/****************************************************************************
+ * NAND
+ *                                                                          
+ ****************************************************************************/
+
+static int __init wand_gpmi_nand_platform_init(void)
+{
+    return 0;
+}
+ 
+static const struct gpmi_nand_platform_data
+     wand_gpmi_nand_platform_data __initconst = {
+    .platform_init           = wand_gpmi_nand_platform_init,
+    .min_prop_delay_in_ns    = 5,
+    .max_prop_delay_in_ns    = 9,
+    .max_chip_count          = 1,
+    .enable_bbt              = 1,
+};
+
+static void __init wand_init_nand(void)
+{
+
+        IMX6_SETUP_PAD( NANDF_ALE__RAWNAND_ALE );
+        IMX6_SETUP_PAD( NANDF_CS0__RAWNAND_CE0N );
+        IMX6_SETUP_PAD( NANDF_CS1__RAWNAND_CE1N );
+        IMX6_SETUP_PAD( NANDF_CLE__RAWNAND_CLE );
+        IMX6_SETUP_PAD( NANDF_D0__RAWNAND_D0 );
+        IMX6_SETUP_PAD( NANDF_D1__RAWNAND_D1 );
+        IMX6_SETUP_PAD( NANDF_D2__RAWNAND_D2 );
+        IMX6_SETUP_PAD( NANDF_D3__RAWNAND_D3 );
+        IMX6_SETUP_PAD( NANDF_D4__RAWNAND_D4 );
+        IMX6_SETUP_PAD( NANDF_D5__RAWNAND_D5 );
+        IMX6_SETUP_PAD( NANDF_D6__RAWNAND_D6 );
+        IMX6_SETUP_PAD( NANDF_D7__RAWNAND_D7 );
+        IMX6_SETUP_PAD( NANDF_RB0__RAWNAND_READY0 );
+        IMX6_SETUP_PAD( SD4_CMD__RAWNAND_RDN );
+        IMX6_SETUP_PAD( SD4_CLK__RAWNAND_WRN );
+        IMX6_SETUP_PAD( NANDF_WP_B__RAWNAND_RESETN );
+
+        imx6q_add_gpmi(&wand_gpmi_nand_platform_data);
+}
+
+
 /****************************************************************************
  *
  * I2C
@@ -208,12 +323,16 @@ static void __init wand_init_i2c(void)
 
 static __init void wand_init_uart(void)
 {
-	IMX6_SETUP_PAD(CSI0_DAT10__UART1_TXD);
-	IMX6_SETUP_PAD(CSI0_DAT11__UART1_RXD);
-	IMX6_SETUP_PAD(EIM_D19__UART1_CTS);
-	IMX6_SETUP_PAD(EIM_D20__UART1_RTS);
+    IMX6_SETUP_PAD( CSI0_DAT10__UART1_TXD );
+    IMX6_SETUP_PAD( CSI0_DAT11__UART1_RXD );
+        
+    IMX6_SETUP_PAD( SD4_DAT4__UART2_RXD );
+    IMX6_SETUP_PAD( SD4_DAT7__UART2_TXD );
 
-	imx6q_add_imx_uart(0, NULL);
+    //IMX6_SETUP_PAD( EIM_D19__UART1_CTS );
+    //IMX6_SETUP_PAD( EIM_D20__UART1_RTS );
+
+    imx6q_add_imx_uart(1, NULL);
 }
 
 
@@ -718,7 +837,7 @@ static struct ipuv3_fb_platform_data wand_lvds_fb[] = {
 	{
 		.disp_dev = "ldb",
 		.interface_pix_fmt = IPU_PIX_FMT_RGB24,
-		.mode_str = "LDB-WVGA",
+		.mode_str = "LDB-VGA",
 		.default_bpp = 24,
 		.int_clk = false,
 	},
@@ -995,44 +1114,43 @@ static __init void wand_init_external_gpios(void)
  *
  ****************************************************************************/
 
-static const int wand_spi1_chipselect[] = { IMX_GPIO_NR(2, 30) };
+//static const int wand_spi1_chipselect[] = { IMX_GPIO_NR(2, 30) };
 
 /* platform device */
-static const struct spi_imx_master wand_spi1_data = {
-	.chipselect     = (int *)wand_spi1_chipselect,
-	.num_chipselect = ARRAY_SIZE(wand_spi1_chipselect),
-};
+//static const struct spi_imx_master wand_spi1_data = {
+//	.chipselect     = (int *)wand_spi1_chipselect,
+//	.num_chipselect = ARRAY_SIZE(wand_spi1_chipselect),
+//};
 
 /* ------------------------------------------------------------------------ */
 
-static const int wand_spi2_chipselect[] = { IMX_GPIO_NR(2, 26),
-					IMX_GPIO_NR(2, 27) };
+//static const int wand_spi2_chipselect[] = { IMX_GPIO_NR(2, 26), IMX_GPIO_NR(2, 27) };
 
-static const struct spi_imx_master wand_spi2_data = {
-	.chipselect     = (int *)wand_spi2_chipselect,
-	.num_chipselect = ARRAY_SIZE(wand_spi2_chipselect),
-};
+//static const struct spi_imx_master wand_spi2_data = {
+//	.chipselect     = (int *)wand_spi2_chipselect,
+//	.num_chipselect = ARRAY_SIZE(wand_spi2_chipselect),
+//};
 
 /* ------------------------------------------------------------------------ */
 
-static void __init wand_init_spi(void)
-{
-	IMX6_SETUP_PAD(EIM_D16__ECSPI1_SCLK);
-	IMX6_SETUP_PAD(EIM_D17__ECSPI1_MISO);
-	IMX6_SETUP_PAD(EIM_D18__ECSPI1_MOSI);
-	IMX6_SETUP_PAD(EIM_EB2__GPIO_2_30);
+//static void __init wand_init_spi(void)
+//{
+//	IMX6_SETUP_PAD(EIM_D16__ECSPI1_SCLK);
+//	IMX6_SETUP_PAD(EIM_D17__ECSPI1_MISO);
+//	IMX6_SETUP_PAD(EIM_D18__ECSPI1_MOSI);
+//	IMX6_SETUP_PAD(EIM_EB2__GPIO_2_30);
 
-	IMX6_SETUP_PAD(EIM_CS0__ECSPI2_SCLK);
-	IMX6_SETUP_PAD(EIM_CS1__ECSPI2_MOSI);
-	IMX6_SETUP_PAD(EIM_OE__ECSPI2_MISO);
+//	IMX6_SETUP_PAD(EIM_CS0__ECSPI2_SCLK);
+//	IMX6_SETUP_PAD(EIM_CS1__ECSPI2_MOSI);
+//	IMX6_SETUP_PAD(EIM_OE__ECSPI2_MISO);
 /* The choice of using gpios for chipselect is deliberate,
    there can be issues using the dedicated mux modes for cs.*/
-	IMX6_SETUP_PAD(EIM_RW__GPIO_2_26);
-	IMX6_SETUP_PAD(EIM_LBA__GPIO_2_27);
+//	IMX6_SETUP_PAD(EIM_RW__GPIO_2_26);
+//	IMX6_SETUP_PAD(EIM_LBA__GPIO_2_27);
 
-	imx6q_add_ecspi(0, &wand_spi1_data);
-	imx6q_add_ecspi(1, &wand_spi2_data);
-}
+//	imx6q_add_ecspi(0, &wand_spi1_data);
+//	imx6q_add_ecspi(1, &wand_spi2_data);
+//}
 
 
 /****************************************************************************
@@ -1068,22 +1186,22 @@ static __init void wand_init_gpu(void)
  * PCI Express (not present on default baseboard, but is routed to connector)
  *
  *****************************************************************************/
-
+/*
 static const struct imx_pcie_platform_data wand_pcie_data = {
 	.pcie_pwr_en = -EINVAL,
 	.pcie_rst = WAND_PCIE_NRST,
 	.pcie_wake_up = -EINVAL,
 	.pcie_dis = -EINVAL,
 };
-
+*/
 /* ------------------------------------------------------------------------ */
-
+/*
 static void __init wand_init_pcie(void)
 {
 	IMX6_SETUP_PAD(EIM_D31__GPIO_3_31);
 	imx6q_add_pcie(&wand_pcie_data);
 }
-
+*/
 
 /****************************************************************************
  *
@@ -1247,22 +1365,27 @@ static void __init wand_board_init(void)
 	wand_init_uart();
 	wand_init_sd();
 	wand_init_i2c();
-	wand_init_audio();
+	//wand_init_audio();
 	wand_init_ethernet();
 	wand_init_usb();
 	wand_init_ipu();
-	wand_init_hdmi();
+	//wand_init_hdmi();
 	wand_init_mipi_csi();
 	wand_init_lcd();
-	wand_init_wifi();
-	wand_init_bluetooth();
+	//wand_init_wifi();
+	//wand_init_bluetooth();
 	wand_init_pm();
-	wand_init_external_gpios();
-	wand_init_spi();
+	//wand_init_external_gpios();
+	//wand_init_spi();
 	wand_init_gpu();
-	wand_init_pcie();
-	if (cpu_is_mx6q())
-		wand_init_sata();
+	//wand_init_pcie();
+	//if (cpu_is_mx6q())
+	//	wand_init_sata();
+        wand_init_nand();
+
+        imx6q_add_ecspi(0, &wand_spi_data);
+
+        wand_spi_nor_init();
 }
 
 /* ------------------------------------------------------------------------ */
