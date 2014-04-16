@@ -18,7 +18,6 @@ obj-$(CONFIG_MACH_MX6Q_HDMIDONGLE) += board-mx6q_hdmidongle.o
 obj-$(CONFIG_MACH_WANDBOARD) += board-wand.o
 obj-$(CONFIG_WANDBOARD_BASE) += baseboard-wand.o
 obj-$(CONFIG_MACH_HAWTHORNE) += board-mx6sl_hawthorne.o
-obj-$(CONFIG_HAWTHORNE_BASE) += baseboard-hawthorne.o
 obj-$(CONFIG_SMP) += plat_hotplug.o platsmp.o headsmp.o
 obj-$(CONFIG_LOCAL_TIMERS) += localtimer.o
 obj-$(CONFIG_IMX_PCIE) += pcie.o

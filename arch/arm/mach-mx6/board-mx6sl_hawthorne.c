@@ -44,7 +44,6 @@
 #include <mach/iomux-v3.h>
 #include <mach/mx6.h>
 
-
 #include "crm_regs.h"
 #include "devices-imx6q.h"
 #include "edm.h"
@@ -1290,7 +1289,6 @@ static __init void hawthorne_init_sata(void)
 {
 	imx6q_add_ahci(0, &hawthorne_sata_data);
 }
-
 
 /*****************************************************************************
  *

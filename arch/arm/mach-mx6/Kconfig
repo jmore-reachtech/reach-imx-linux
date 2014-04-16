@@ -286,7 +286,7 @@ config MACH_MX6Q_HDMIDONGLE
 	  configurations for the board and its peripherals.
 
 config MACH_HAWTHORNE
-	bool "Support for Hawthorne"
+	bool "Support i.MX 6SoloLite Hawthorne platform"
 	select ARCH_MX6Q
 	select SOC_IMX6Q
         select IMX_HAVE_PLATFORM_GPMI_NFC
@@ -314,15 +314,6 @@ config MACH_HAWTHORNE
 	select EDM
 	help
 	  Include support for Hawthorne SoM.
-
-config HAWTHORNE_BASE
-	tristate "Support for Hawthorne baseboard"
-	depends on MACH_HAWTHORNE
-	default y
-	help
-	  Include support for the devices on the default Hawthorne baseboard.
-
-			If you have a standard Wandboard, say Y.
 
 config MACH_WANDBOARD
 	bool "Support for the WandBoard"
