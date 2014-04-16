@@ -332,6 +332,7 @@ static __init void wand_init_uart(void)
     //IMX6_SETUP_PAD( EIM_D19__UART1_CTS );
     //IMX6_SETUP_PAD( EIM_D20__UART1_RTS );
 
+    imx6q_add_imx_uart(0, NULL);
     imx6q_add_imx_uart(1, NULL);
 }
 
