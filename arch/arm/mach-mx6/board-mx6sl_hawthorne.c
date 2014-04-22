@@ -29,7 +29,7 @@
 #include <linux/kernel.h>
 #include <linux/memblock.h>
 #include <linux/phy.h>
-
+#include <linux/mxcfb.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/mtd/mtd.h>
@@ -334,126 +334,7 @@ static __init void hawthorne_init_uart(void)
     imx6q_add_imx_uart(0, NULL);
     imx6q_add_imx_uart(1, NULL);
 }
-
-
-/****************************************************************************
- *
- * Initialize sound (SSI, ASRC, AUD3 channel and S/PDIF)
- *
- ****************************************************************************/
-
-extern struct mxc_audio_platform_data hawthorne_audio_channel_data;
-
-/* This function is called as a callback from the audio channel data struct */
-static int hawthorne_audio_clock_enable(void)
-{
-	struct clk *clko;
-	struct clk *new_parent;
-	int rate;
-
-	clko = clk_get(NULL, "clko_clk");
-	if (IS_ERR(clko))
-		return PTR_ERR(clko);
-
-	new_parent = clk_get(NULL, "ahb");
-	if (!IS_ERR(new_parent)) {
-		clk_set_parent(clko, new_parent);
-		clk_put(new_parent);
-	}
-
-	rate = clk_round_rate(clko, 16000000);
-	if (rate < 8000000 || rate > 27000000) {
-		pr_err("SGTL5000: mclk freq %d out of range!\n", rate);
-		clk_put(clko);
-		return -1;
-	}
-
-	hawthorne_audio_channel_data.sysclk = rate;
-	clk_set_rate(clko, rate);
-	clk_enable(clko);
-
-	return 0;
-}
-
-/* ------------------------------------------------------------------------ */
-
-/* This struct is added by the baseboard when initializing the codec */
-struct mxc_audio_platform_data hawthorne_audio_channel_data = {
-	.ssi_num = 1,
-	.src_port = 2,
-	.ext_port = 3, /* audio channel: 3=AUD3. TODO: EDM */
-	.init = hawthorne_audio_clock_enable,
-	.hp_gpio = -1,
-};
-EXPORT_SYMBOL_GPL(hawthorne_audio_channel_data); /* TODO: edm naming? */
-
-/* ------------------------------------------------------------------------ */
-#ifdef CONFIG_SND_SOC_IMX_SPDIF
-static int hawthorne_set_spdif_clk_rate(struct clk *clk, unsigned long rate)
-{
-	unsigned long rate_actual;
-	rate_actual = clk_round_rate(clk, rate);
-	clk_set_rate(clk, rate_actual);
-	return 0;
-}
-
-/* ------------------------------------------------------------------------ */
-
-static struct mxc_spdif_platform_data hawthorne_spdif = {
-	.spdif_tx		= 1,	/* enable tx */
-	.spdif_rx		= 1,	/* enable rx */
-	.spdif_clk_44100	= 1,    /* tx clk from spdif0_clk_root */
-	.spdif_clk_48000	= 1,    /* tx clk from spdif0_clk_root */
-	.spdif_div_44100	= 23,
-	.spdif_div_48000	= 37,
-	.spdif_div_32000	= 37,
-	.spdif_rx_clk		= 0,    /* rx clk from spdif stream */
-	.spdif_clk_set_rate	= hawthorne_set_spdif_clk_rate,
-	.spdif_clk		= NULL, /* spdif bus clk */
-};
-#endif
-/* ------------------------------------------------------------------------ */
-
-static struct imx_ssi_platform_data hawthorne_ssi_pdata = {
-	.flags = IMX_SSI_DMA | IMX_SSI_SYN,
-};
-
-/* ------------------------------------------------------------------------ */
-
-static struct imx_asrc_platform_data hawthorne_asrc_data = {
-	.channel_bits	= 4,
-	.clk_map_ver	= 2,
-};
-
-/* ------------------------------------------------------------------------ */
-
-void __init hawthorne_init_audio(void)
-{
-	IMX6_SETUP_PAD(CSI0_DAT4__AUDMUX_AUD3_TXC);
-	IMX6_SETUP_PAD(CSI0_DAT5__AUDMUX_AUD3_TXD);
-	IMX6_SETUP_PAD(CSI0_DAT6__AUDMUX_AUD3_TXFS);
-	IMX6_SETUP_PAD(CSI0_DAT7__AUDMUX_AUD3_RXD);
-	IMX6_SETUP_PAD(GPIO_0__CCM_CLKO);
-
-	/* Sample rate converter is added together with audio */
-	hawthorne_asrc_data.asrc_core_clk = clk_get(NULL, "asrc_clk");
-	hawthorne_asrc_data.asrc_audio_clk = clk_get(NULL, "asrc_serial_clk");
-	imx6q_add_asrc(&hawthorne_asrc_data);
-
-	imx6q_add_imx_ssi(1, &hawthorne_ssi_pdata);
-	/* Enable SPDIF if needed */
-#ifdef CONFIG_SND_SOC_IMX_SPDIF
-	IMX6_SETUP_PAD(ENET_RXD0__SPDIF_OUT1);
-
-	hawthorne_spdif.spdif_core_clk = clk_get_sys("mxc_spdif.0", NULL);
-	clk_put(hawthorne_spdif.spdif_core_clk);
-	imx6q_add_spdif(&hawthorne_spdif);
-	imx6q_add_spdif_dai();
-	imx6q_add_spdif_audio_device();
-#endif
-}
-
-
+ 
 /*****************************************************************************
  *
  * Init FEC and AR8031 PHY
@@ -589,69 +470,6 @@ static struct imx_ipuv3_platform_data hawthorne_ipu_data[] = {
 static __init void hawthorne_init_ipu(void)
 {
 	imx6q_add_ipuv3(0, &hawthorne_ipu_data[0]);
-}
-
-
-/****************************************************************************
- *
- * HDMI
- *
- ****************************************************************************/
-
-static struct ipuv3_fb_platform_data hawthorne_hdmi_fb[] = {
-	{ /* hdmi framebuffer */
-		.disp_dev = "hdmi",
-		.interface_pix_fmt = IPU_PIX_FMT_RGB32,
-		.mode_str = "1920x1080@60",
-		.default_bpp = 32,
-		.int_clk = false,
-	}
-};
-
-/* ------------------------------------------------------------------------ */
-
-static void hawthorne_hdmi_init(int ipu_id, int disp_id)
-{
-	if ((unsigned)ipu_id > 1)
-		ipu_id = 0;
-	if ((unsigned)disp_id > 1)
-		disp_id = 0;
-
-	mxc_iomux_set_gpr_register(3, 2, 2, 2*ipu_id + disp_id);
-}
-
-/* ------------------------------------------------------------------------ */
-
-static struct fsl_mxc_hdmi_platform_data hawthorne_hdmi_data = {
-	.init = hawthorne_hdmi_init,
-};
-
-/* ------------------------------------------------------------------------ */
-
-static struct fsl_mxc_hdmi_core_platform_data hawthorne_hdmi_core_data = {
-	.ipu_id  = 0,
-	.disp_id = 1,
-};
-
-/* ------------------------------------------------------------------------ */
-
-static const struct i2c_board_info hawthorne_hdmi_i2c_info = {
-	I2C_BOARD_INFO("mxc_hdmi_i2c", 0x50),
-};
-
-/* ------------------------------------------------------------------------ */
-
-static void hawthorne_init_hdmi(void)
-{
-	i2c_register_board_info(0, &hawthorne_hdmi_i2c_info, 1);
-	imx6q_add_mxc_hdmi_core(&hawthorne_hdmi_core_data);
-	imx6q_add_mxc_hdmi(&hawthorne_hdmi_data);
-	imx6q_add_ipuv3fb(0, hawthorne_hdmi_fb);
-
- /* Enable HDMI audio */
-	imx6q_add_hdmi_soc();
-	imx6q_add_hdmi_soc_dai();
-	mxc_iomux_set_gpr_register(0, 0, 1, 1);
 }
 
 #ifdef CONFIG_IMX_HAVE_PLATFORM_IMX_MIPI_CSI2
@@ -898,106 +716,19 @@ static void __init hawthorne_init_lcd(void)
 
 	gpio_request(IMX_GPIO_NR(2, 10), "disp0_bklen");
 	gpio_direction_output(IMX_GPIO_NR(2, 10), 1);
+	//gpio_set_value(IMX_GPIO_NR(2,10),0);
 
 	gpio_request(IMX_GPIO_NR(2, 11), "disp0_vdden");
 	gpio_direction_output(IMX_GPIO_NR(2, 11), 1);
+	//gpio_set_value(IMX_GPIO_NR(2,11),0);
 
 	imx6q_add_vdoa();
 
 	imx6q_add_ldb(&hawthorne_ldb_data);
 	imx6q_add_lcdif(&hawthorne_lcdif_data);
 
-	imx6q_add_ipuv3fb(1, &hawthorne_lvds_fb[0]);
+	imx6q_add_ipuv3fb(0, &hawthorne_lvds_fb[0]);
 }
-
-
-/****************************************************************************
- *
- * WiFi
- *
- ****************************************************************************/
-
-/* assumes SD/MMC pins are set; call after hawthorne_init_sd() */
-static __init void hawthorne_init_wifi(void)
-{
-	/* ref_on, enable 32k clock */
-	IMX6_SETUP_PAD(EIM_EB1__GPIO_2_29);
-	/* Wifi reset (resets when low!) */
-	IMX6_SETUP_PAD(EIM_A25__GPIO_5_2);
-	/* reg on, signal to FDC6331L */
-	IMX6_SETUP_PAD(ENET_RXD1__GPIO_1_26);
-	/* host wake */
-	IMX6_SETUP_PAD(ENET_TXD1__GPIO_1_29);
-	/* wl wake - nc */
-	IMX6_SETUP_PAD(ENET_TXD0__GPIO_1_30);
-
-	gpio_request(HAWTHORNE_WL_RST_N, "wl_rst_n");
-	gpio_direction_output(HAWTHORNE_WL_RST_N, 0);
-	msleep(11);
-	gpio_set_value(HAWTHORNE_WL_RST_N, 1);
-
-	gpio_request(HAWTHORNE_WL_REF_ON, "wl_ref_on");
-	gpio_direction_output(HAWTHORNE_WL_REF_ON, 1);
-
-	gpio_request(HAWTHORNE_WL_REG_ON, "wl_reg_on");
-	gpio_direction_output(HAWTHORNE_WL_REG_ON, 1);
-
-	gpio_request(HAWTHORNE_WL_WAKE, "wl_wake");
-	gpio_direction_output(HAWTHORNE_WL_WAKE, 1);
-
-	gpio_request(HAWTHORNE_WL_HOST_WAKE, "wl_host_wake");
-	gpio_direction_input(HAWTHORNE_WL_HOST_WAKE);
-}
-
-
-/****************************************************************************
- *
- * Bluetooth
- *
- ****************************************************************************/
-
-static const struct imxuart_platform_data hawthorne_bt_uart_data = {
-	.flags = IMXUART_HAVE_RTSCTS | IMXUART_SDMA,
-	.dma_req_tx = MX6Q_DMA_REQ_UART3_TX,
-	.dma_req_rx = MX6Q_DMA_REQ_UART3_RX,
-};
-
-/* ------------------------------------------------------------------------ */
-
-/* This assumes wifi is initialized (chip has power) */
-static __init void hawthorne_init_bluetooth(void)
-{
-	/* BT_ON, BT_WAKE and BT_HOST_WAKE */
-	IMX6_SETUP_PAD(EIM_DA13__GPIO_3_13);
-	IMX6_SETUP_PAD(EIM_DA14__GPIO_3_14);
-	IMX6_SETUP_PAD(EIM_DA15__GPIO_3_15);
-
-	/* AUD5 channel goes to BT */
-	IMX6_SETUP_PAD(KEY_COL0__AUDMUX_AUD5_TXC);
-	IMX6_SETUP_PAD(KEY_ROW0__AUDMUX_AUD5_TXD);
-	IMX6_SETUP_PAD(KEY_COL1__AUDMUX_AUD5_TXFS);
-	IMX6_SETUP_PAD(KEY_ROW1__AUDMUX_AUD5_RXD);
-
-	/* Bluetooth is on UART3*/
-	IMX6_SETUP_PAD(EIM_D23__UART3_CTS);
-	IMX6_SETUP_PAD(EIM_D24__UART3_TXD);
-	IMX6_SETUP_PAD(EIM_D25__UART3_RXD);
-	IMX6_SETUP_PAD(EIM_EB3__UART3_RTS);
-
-	imx6q_add_imx_uart(2, &hawthorne_bt_uart_data);
-
-	gpio_request(HAWTHORNE_BT_ON, "bt_on");
-	gpio_direction_output(HAWTHORNE_BT_ON, 0);
-	msleep(11);
-	gpio_set_value(HAWTHORNE_BT_ON, 1);
-
-	gpio_request(HAWTHORNE_BT_WAKE, "bt_wake");
-	gpio_direction_output(HAWTHORNE_BT_WAKE, 1);
-
-	gpio_request(HAWTHORNE_BT_HOST_WAKE, "bt_host_wake");
-	gpio_direction_input(HAWTHORNE_BT_WAKE);
-}
-
 
 /****************************************************************************
  *
@@ -1071,43 +802,6 @@ static __init void hawthorne_init_pm(void)
 	imx6q_add_busfreq();
 }
 
-
-/****************************************************************************
- *
- * Expansion pin header GPIOs
- *
- ****************************************************************************/
-
-static __init void hawthorne_init_external_gpios(void)
-{
-	IMX6_SETUP_PAD( EIM_DA11__GPIO_3_11 ); /* p256 */
-	IMX6_SETUP_PAD( EIM_D27__GPIO_3_27 ); /* p258 */
-	IMX6_SETUP_PAD( EIM_BCLK__GPIO_6_31 ); /* p260 */
-	IMX6_SETUP_PAD( ENET_RX_ER__GPIO_1_24 ); /* p262 */
-	IMX6_SETUP_PAD( SD3_RST__GPIO_7_8 ); /* p264 */
-	IMX6_SETUP_PAD( EIM_D26__GPIO_3_26 ); /* p259 */
-	IMX6_SETUP_PAD( EIM_DA8__GPIO_3_8 ); /* p261 */
-	IMX6_SETUP_PAD( GPIO_19__GPIO_4_5 ); /* p263 */
-
-	gpio_request(IMX_GPIO_NR(3, 11), "external_gpio_0");
-	gpio_export(IMX_GPIO_NR(3, 11), true);
-	gpio_request(IMX_GPIO_NR(3, 27), "external_gpio_1");
-	gpio_export(IMX_GPIO_NR(3, 27), true);
-	gpio_request(IMX_GPIO_NR(6, 31), "external_gpio_2");
-	gpio_export(IMX_GPIO_NR(6, 31), true);
-	gpio_request(IMX_GPIO_NR(1, 24), "external_gpio_3");
-	gpio_export(IMX_GPIO_NR(1, 24), true);
-	gpio_request(IMX_GPIO_NR(7,  8), "external_gpio_4");
-	gpio_export(IMX_GPIO_NR(7,  8), true);
-	gpio_request(IMX_GPIO_NR(3, 26), "external_gpio_5");
-	gpio_export(IMX_GPIO_NR(3, 26), true);
-	gpio_request(IMX_GPIO_NR(3, 8), "external_gpio_6");
-	gpio_export(IMX_GPIO_NR(3, 8), true);
-	gpio_request(IMX_GPIO_NR(4, 5), "external_gpio_7");
-	gpio_export(IMX_GPIO_NR(4, 5), true);
-}
-
-
 /****************************************************************************
  *
  * SPI - while not used on the Wandboard, the pins are routed out
@@ -1180,116 +874,6 @@ static __init void hawthorne_init_gpu(void)
 	imx6q_add_v4l2_output(0);
 }
 
-
-/*****************************************************************************
- *
- * PCI Express (not present on default baseboard, but is routed to connector)
- *
- *****************************************************************************/
-/*
-static const struct imx_pcie_platform_data hawthorne_pcie_data = {
-	.pcie_pwr_en = -EINVAL,
-	.pcie_rst = HAWTHORNE_PCIE_NRST,
-	.pcie_wake_up = -EINVAL,
-	.pcie_dis = -EINVAL,
-};
-*/
-/* ------------------------------------------------------------------------ */
-/*
-static void __init hawthorne_init_pcie(void)
-{
-	IMX6_SETUP_PAD(EIM_D31__GPIO_3_31);
-	imx6q_add_pcie(&hawthorne_pcie_data);
-}
-*/
-
-/****************************************************************************
- *
- * AHCI - SATA
- *
- ****************************************************************************/
-
-static struct clk *hawthorne_sata_clk;
-
-/* HW Initialization, if return 0, initialization is successful. */
-static int hawthorne_sata_init(struct device *dev, void __iomem *addr)
-{
-	u32 tmpdata;
-	int ret = 0;
-	struct clk *clk;
-
-	hawthorne_sata_clk = clk_get(dev, "imx_sata_clk");
-	if (IS_ERR(hawthorne_sata_clk)) {
-		dev_err(dev, "no sata clock.\n");
-		return PTR_ERR(hawthorne_sata_clk);
-	}
-
-	ret = clk_enable(hawthorne_sata_clk);
-	if (ret) {
-		dev_err(dev, "can't enable sata clock.\n");
-		goto put_sata_clk;
-	}
-
-	/* Set PHY Paremeters, two steps to configure the GPR13,
-	 * one write for rest of parameters, mask of first write is 0x07FFFFFD,
-	 * and the other one write for setting the mpll_clk_off_b
-	 *.rx_eq_val_0(iomuxc_gpr13[26:24]),
-	 *.los_lvl(iomuxc_gpr13[23:19]),
-	 *.rx_dpll_mode_0(iomuxc_gpr13[18:16]),
-	 *.sata_speed(iomuxc_gpr13[15]),
-	 *.mpll_ss_en(iomuxc_gpr13[14]),
-	 *.tx_atten_0(iomuxc_gpr13[13:11]),
-	 *.tx_boost_0(iomuxc_gpr13[10:7]),
-	 *.tx_lvl(iomuxc_gpr13[6:2]),
-	 *.mpll_ck_off(iomuxc_gpr13[1]),
-	 *.tx_edgerate_0(iomuxc_gpr13[0]),
-	 */
-	tmpdata = readl(IOMUXC_GPR13);
-	writel(((tmpdata & ~0x07FFFFFD) | 0x0593A044), IOMUXC_GPR13);
-
-	/* enable SATA_PHY PLL */
-	tmpdata = readl(IOMUXC_GPR13);
-	writel(((tmpdata & ~0x2) | 0x2), IOMUXC_GPR13);
-
-	/* Get the AHB clock rate, and configure the TIMER1MS reg later */
-	clk = clk_get(NULL, "ahb");
-	if (IS_ERR(clk)) {
-		dev_err(dev, "no ahb clock.\n");
-		ret = PTR_ERR(clk);
-		goto release_sata_clk;
-	}
-	tmpdata = clk_get_rate(clk) / 1000;
-	clk_put(clk);
-
-	ret = sata_init(addr, tmpdata);
-	if (ret == 0)
-		return ret;
-
-release_sata_clk:
-	clk_disable(hawthorne_sata_clk);
-put_sata_clk:
-	clk_put(hawthorne_sata_clk);
-
-	return ret;
-}
-
-static void hawthorne_sata_exit(struct device *dev)
-{
-	clk_disable(hawthorne_sata_clk);
-	clk_put(hawthorne_sata_clk);
-}
-
-static struct ahci_platform_data hawthorne_sata_data = {
-	.init = hawthorne_sata_init,
-	.exit = hawthorne_sata_exit,
-};
-
-
-static __init void hawthorne_init_sata(void)
-{
-	imx6q_add_ahci(0, &hawthorne_sata_data);
-}
-
 /*****************************************************************************
  *
  * Init clocks and early boot console
@@ -1349,7 +933,6 @@ static void __init hawthorne_reserve(void)
 	edm_i2c[2] = -EINVAL;
 	edm_ddc = -EINVAL;
         
-	edm_analog_audio_platform_data = &hawthorne_audio_channel_data;
 }
 
 /*****************************************************************************
@@ -1364,27 +947,19 @@ static void __init hawthorne_board_init(void)
 	hawthorne_init_uart();
 	hawthorne_init_sd();
 	hawthorne_init_i2c();
-	//hawthorne_init_audio();
 	hawthorne_init_ethernet();
 	hawthorne_init_usb();
 	hawthorne_init_ipu();
-	//hawthorne_init_hdmi();
 	hawthorne_init_mipi_csi();
 	hawthorne_init_lcd();
-	//hawthorne_init_wifi();
-	//hawthorne_init_bluetooth();
 	hawthorne_init_pm();
-	//hawthorne_init_external_gpios();
 	//hawthorne_init_spi();
 	hawthorne_init_gpu();
-	//hawthorne_init_pcie();
-	//if (cpu_is_mx6q())
-	//	hawthorne_init_sata();
-        hawthorne_init_nand();
+    hawthorne_init_nand();
 
-        imx6q_add_ecspi(0, &hawthorne_spi_data);
+    imx6q_add_ecspi(0, &hawthorne_spi_data);
 
-        hawthorne_spi_nor_init();
+	hawthorne_spi_nor_init();
 }
 
 /* ------------------------------------------------------------------------ */

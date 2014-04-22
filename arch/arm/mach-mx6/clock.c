@@ -5444,7 +5444,7 @@ int __init mx6_clocks_init(unsigned long ckil, unsigned long osc,
 
 	/* Initialize Audio and Video PLLs to valid frequency. */
 	clk_set_rate(&pll4_audio_main_clk, 176000000);
-	clk_set_rate(&pll5_video_main_clk, 650000000);
+	clk_set_rate(&pll5_video_main_clk, 176000000);
 
 	clk_set_parent(&ipu1_di_clk[0], &pll5_video_main_clk);
 	clk_set_parent(&ipu1_di_clk[1], &pll5_video_main_clk);
@@ -5495,8 +5495,13 @@ int __init mx6_clocks_init(unsigned long ckil, unsigned long osc,
 	if (cpu_is_mx6q() && (mx6q_revision() > IMX_CHIP_REVISION_1_1))
 		clk_set_parent(&gpu2d_core_clk[0], &pll3_usb_otg_main_clk);
 
-	clk_set_parent(&ldb_di0_clk, &pll2_pfd_352M);
-	clk_set_parent(&ldb_di1_clk, &pll2_pfd_352M);
+	/* original */
+	//clk_set_parent(&ldb_di0_clk, &pll2_pfd_352M);
+	//clk_set_parent(&ldb_di1_clk, &pll2_pfd_352M);
+	
+	/* Reach HACK to get panel in spec */
+	clk_set_parent(&ldb_di0_clk, &pll5_video_main_clk);
+	clk_set_parent(&ldb_di1_clk, &pll5_video_main_clk);
 
 	/* PCLK camera - J5 */
 	clk_set_parent(&clko2_clk, &osc_clk);

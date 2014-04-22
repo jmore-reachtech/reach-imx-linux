@@ -1928,15 +1928,21 @@ static int mxcfb_option_setup(struct platform_device *pdev, struct fb_info *fbi)
 	char name[] = "mxcfb0";
 	uint32_t fb_pix_fmt = 0;
 
+	printk("%s: \n", __func__);
+
 	name[5] += pdev->id;
+	printk("%s: looking for %s \n",__func__,name);
 	if (fb_get_options(name, &options)) {
 		dev_err(&pdev->dev, "Can't get fb option for %s!\n", name);
 		return -ENODEV;
 	}
 
-	if (!options || !*options)
+	if (!options || !*options) {
+		printk("%s: no fb options! \n", __func__);
 		return 0;
+	}
 
+	printk("%s: parsing fb options \n", __func__);
 	while ((opt = strsep(&options, ",")) != NULL) {
 		if (!*opt)
 			continue;
@@ -2004,8 +2010,10 @@ static int mxcfb_option_setup(struct platform_device *pdev, struct fb_info *fbi)
 			fb_mode_str = opt;
 	}
 
-	if (fb_mode_str)
+	if (fb_mode_str) {
+		printk("%s: mode=%s \n", __func__, fb_mode_str);
 		pdata->mode_str = fb_mode_str;
+	}
 
 	return 0;
 }
@@ -2246,6 +2254,8 @@ static int mxcfb_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret = 0;
 
+	printk("%s: \n", __func__);
+
 	/* Initialize FB structures */
 	fbi = mxcfb_init_fbinfo(&pdev->dev, &mxcfb_ops);
 	if (!fbi) {
@@ -2254,8 +2264,11 @@ static int mxcfb_probe(struct platform_device *pdev)
 	}
 
 	ret = mxcfb_option_setup(pdev, fbi);
-	if (ret)
+	if (ret) {
+		printk("%s: get_fb_option_failed - bailing out! \n", __func__);
+		
 		goto get_fb_option_failed;
+	}
 
 	mxcfbi = (struct mxcfb_info *)fbi->par;
 	mxcfbi->ipu_int_clk = plat_data->int_clk;

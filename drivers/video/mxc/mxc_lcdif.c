@@ -93,6 +93,8 @@ static int mxc_lcdif_probe(struct platform_device *pdev)
 	int ret = 0;
 	struct mxc_lcdif_data *lcdif;
 
+	printk("%s: \n", __func__);
+
 	lcdif = kzalloc(sizeof(struct mxc_lcdif_data), GFP_KERNEL);
 	if (!lcdif) {
 		ret = -ENOMEM;

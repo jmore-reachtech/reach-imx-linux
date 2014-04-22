@@ -110,10 +110,10 @@ static struct fb_videomode ldb_modedb[] = {
           .xres                   = 640, 
           .yres                   = 480, 
           .pixclock               = 25200,
-          .left_margin    = 48, 
-          .right_margin   = 16,
-          .upper_margin   = 31, 
-          .lower_margin   = 11,
+          .left_margin			  = 48, 
+          .right_margin			  = 16,
+          .upper_margin			  = 31, 
+          .lower_margin			  = 11,
           .hsync_len              = 96, 
           .vsync_len              = 2,
           .sync                   = 0,
@@ -259,6 +259,8 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 
 	di = ldb->setting[setting_idx].di;
 
+	printk("%s: ----------------------------\n",__func__);
+
 	/* restore channel mode setting */
 	val = readl(ldb->control_reg);
 	val |= ldb->setting[setting_idx].ch_val;
@@ -288,18 +290,36 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 	/* clk setup */
 	if (ldb->setting[setting_idx].clk_en)
 		clk_disable(ldb->setting[setting_idx].ldb_di_clk);
-	pixel_clk = (PICOS2KHZ(fbi->var.pixclock)) * 1000UL;
+
+	//pixel_clk = (PICOS2KHZ(fbi->var.pixclock)) * 1000UL;
+	pixel_clk = 25200000;
+
+	printk("%s: pixel_clk=%u \n",__func__,pixel_clk);
+	printk("%s: xres=%d \n",__func__,fbi->var.xres);
+	printk("%s: yres=%d \n",__func__,fbi->var.yres);
+	printk("%s: left_margin=%d \n",__func__,fbi->var.left_margin);
+	printk("%s: right_margin=%d \n",__func__,fbi->var.right_margin);
+	printk("%s: upper_margin=%d \n",__func__,fbi->var.upper_margin);
+	printk("%s: lower_margin=%d \n",__func__,fbi->var.lower_margin);
+	printk("%s: hsync_len=%d \n",__func__,fbi->var.hsync_len);
+	printk("%s: vsync_len=%d \n",__func__,fbi->var.vsync_len);
+	
 	ldb_clk_parent = clk_get_parent(ldb->setting[setting_idx].ldb_di_clk);
 	if ((ldb->mode == LDB_SPL_DI0) || (ldb->mode == LDB_SPL_DI1))
 		clk_set_rate(ldb_clk_parent, pixel_clk * 7 / 2);
 	else
 		clk_set_rate(ldb_clk_parent, pixel_clk * 7);
+
 	rounded_pixel_clk = clk_round_rate(ldb->setting[setting_idx].ldb_di_clk,
 			pixel_clk);
+	printk("%s: rounded_pixel_clk=%u \n",__func__,rounded_pixel_clk);
+	
 	clk_set_rate(ldb->setting[setting_idx].ldb_di_clk, rounded_pixel_clk);
 	clk_enable(ldb->setting[setting_idx].ldb_di_clk);
 	if (!ldb->setting[setting_idx].clk_en)
 		ldb->setting[setting_idx].clk_en = true;
+
+	printk("%s: ----------------------------\n\n",__func__);
 
 	return 0;
 }

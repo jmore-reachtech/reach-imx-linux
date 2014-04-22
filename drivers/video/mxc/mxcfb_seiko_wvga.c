@@ -121,6 +121,8 @@ static int __devinit lcd_probe(struct platform_device *pdev)
 {
 	int i;
 	struct fsl_mxc_lcd_platform_data *plat = pdev->dev.platform_data;
+	
+	printk("%s: \n", __func__);
 
 	if (plat) {
 		if (plat->reset)
@@ -223,11 +225,15 @@ static void lcd_poweroff(void)
 
 static int __init seiko_wvga_lcd_init(void)
 {
+	printk("%s: \n", __func__);
+
 	return platform_driver_register(&lcd_driver);
 }
 
 static void __exit seiko_wvga_lcd_exit(void)
 {
+	printk("%s: \n", __func__);
+
 	platform_driver_unregister(&lcd_driver);
 }
 
