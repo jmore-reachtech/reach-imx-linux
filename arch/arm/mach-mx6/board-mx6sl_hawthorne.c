@@ -199,14 +199,12 @@ static struct mtd_partition hawthorne_spi_nor_partitions[] = {
 		{
                 .name   = "bootenv",
                 .offset = MTDPART_OFS_APPEND,
-                .size   = SZ_8K,
-                .mask_flags = MTD_WRITEABLE,
+                .size   = SZ_128K,
         },
         {
                 .name   = "genenv",
                 .offset = MTDPART_OFS_APPEND,
                 .size   = SZ_256K,
-                .mask_flags = MTD_WRITEABLE,
         }, 
 		{
                 .name   = "kernel",
