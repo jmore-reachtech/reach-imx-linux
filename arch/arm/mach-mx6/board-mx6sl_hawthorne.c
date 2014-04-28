@@ -194,15 +194,23 @@ static struct mtd_partition hawthorne_spi_nor_partitions[] = {
         {
                 .name   = "bootloader",
                 .offset = 0,
-                .size   = SZ_256K,
-        }, {
+                .size   = SZ_512K,
+        }, 
+		{
                 .name   = "bootenv",
                 .offset = MTDPART_OFS_APPEND,
                 .size   = SZ_8K,
                 .mask_flags = MTD_WRITEABLE,
-        }, {
+        },
+        {
+                .name   = "genenv",
+                .offset = MTDPART_OFS_APPEND,
+                .size   = SZ_256K,
+                .mask_flags = MTD_WRITEABLE,
+        }, 
+		{
                 .name   = "kernel",
-                .offset = MTDPART_OFS_NXTBLK,
+                .offset = MTDPART_OFS_APPEND,
                 .size   = MTDPART_SIZ_FULL,
         },      
 };
@@ -249,6 +257,15 @@ static int __init hawthorne_gpmi_nand_platform_init(void)
     return 0;
 }
  
+static struct mtd_partition nand_flash_partitions[] = {
+	{
+		.name	= "rootfs",
+		.offset = 0,
+		.size	= MTDPART_SIZ_FULL,
+	},
+};
+
+
 static const struct gpmi_nand_platform_data
      hawthorne_gpmi_nand_platform_data __initconst = {
     .platform_init           = hawthorne_gpmi_nand_platform_init,
@@ -256,6 +273,7 @@ static const struct gpmi_nand_platform_data
     .max_prop_delay_in_ns    = 9,
     .max_chip_count          = 1,
     .enable_bbt              = 1,
+	.partitions				 = nand_flash_partitions,
 };
 
 static void __init hawthorne_init_nand(void)
