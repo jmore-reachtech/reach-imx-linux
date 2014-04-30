@@ -272,6 +272,7 @@ static const struct gpmi_nand_platform_data
     .max_chip_count          = 1,
     .enable_bbt              = 1,
 	.partitions				 = nand_flash_partitions,
+	.partition_count		 = ARRAY_SIZE(nand_flash_partitions),
 };
 
 static void __init hawthorne_init_nand(void)
