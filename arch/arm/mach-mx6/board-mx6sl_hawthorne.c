@@ -673,7 +673,7 @@ static struct ipuv3_fb_platform_data hawthorne_lvds_fb[] = {
 		.disp_dev = "ldb",
 		.interface_pix_fmt = IPU_PIX_FMT_RGB24,
 		.mode_str = "LDB-VGA",
-		.default_bpp = 24,
+		.default_bpp = 32,
 		.int_clk = false,
 	},
 };
