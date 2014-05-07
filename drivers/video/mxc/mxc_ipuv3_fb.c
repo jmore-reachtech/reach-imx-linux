@@ -48,7 +48,16 @@
 #include <linux/fsl_devices.h>
 #include <asm/mach-types.h>
 #include <mach/ipu-v3.h>
+#include <mach/gpio.h>
 #include "mxc_dispdrv.h"
+
+
+/*
+ * Panel and LVDS control
+ */
+#define HAWTHORNE_LVDS_BL_EN	IMX_GPIO_NR(2,9)	
+#define HAWTHORNE_DISP_BL_EN	IMX_GPIO_NR(2,10)	
+#define HAWTHORNE_DISP_EN		IMX_GPIO_NR(2,11)	
 
 /*
  * Driver name
@@ -955,6 +964,8 @@ static int mxcfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 	int __user *argp = (void __user *)arg;
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)fbi->par;
 
+	printk("%s: cmd = %u \n", __func__, cmd);
+
 	switch (cmd) {
 	case MXCFB_SET_GBL_ALPHA:
 		{
@@ -1349,8 +1360,10 @@ static int mxcfb_blank(int blank, struct fb_info *info)
 	struct mxcfb_info *mxc_fbi = (struct mxcfb_info *)info->par;
 	int ret = 0;
 
-	dev_dbg(info->device, "blank = %d\n", blank);
+	printk("%s: blank = %d \n", __func__, blank);
 
+	printk("%s: mxc_fbi->cur_blank == %d \n", __func__, mxc_fbi->cur_blank);
+	
 	if (mxc_fbi->cur_blank == blank)
 		return 0;
 
@@ -1361,14 +1374,28 @@ static int mxcfb_blank(int blank, struct fb_info *info)
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_NORMAL:
-		if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable)
+		printk("%s: FB_BLANK_NORMAL \n", __func__);
+		
+		if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable) {
+			printk("%s: drv->disable \n", __func__);
 			mxc_fbi->dispdrv->drv->disable(mxc_fbi->dispdrv);
+		}
 		ipu_disable_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch, true);
-		if (mxc_fbi->ipu_di >= 0)
+		
+		if (mxc_fbi->ipu_di >= 0) {
+			printk("%s: ipu_di >= 0 \n", __func__);
 			ipu_uninit_sync_panel(mxc_fbi->ipu, mxc_fbi->ipu_di);
+		}
 		ipu_uninit_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch);
 		break;
 	case FB_BLANK_UNBLANK:
+		printk("%s: FB_BLANK_UNBLANK \n", __func__);
+		
+		if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->enable) {
+			printk("%s: drv->enable \n", __func__);
+			mxc_fbi->dispdrv->drv->enable(mxc_fbi->dispdrv);
+		}
+
 		info->var.activate = (info->var.activate & ~FB_ACTIVATE_MASK) |
 				FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
 		ret = mxcfb_set_par(info);
@@ -2254,7 +2281,7 @@ static int mxcfb_probe(struct platform_device *pdev)
 	struct resource *res;
 	int ret = 0;
 
-	printk("%s: \n", __func__);
+	printk("%s: enter \n", __func__);
 
 	/* Initialize FB structures */
 	fbi = mxcfb_init_fbinfo(&pdev->dev, &mxcfb_ops);
@@ -2291,8 +2318,10 @@ static int mxcfb_probe(struct platform_device *pdev)
 		fbi->fix.smem_start = res->start;
 		fbi->screen_base = ioremap(fbi->fix.smem_start, fbi->fix.smem_len);
 		/* Do not clear the fb content drawn in bootloader. */
-		if (!mxcfbi->late_init)
+		if (!mxcfbi->late_init) {
+			printk("%s: clear screen \n", __func__);
 			memset(fbi->screen_base, 0, fbi->fix.smem_len);
+		}
 	}
 
 	mxcfbi->ipu = ipu_get_soc(mxcfbi->ipu_id);
@@ -2372,6 +2401,8 @@ static int mxcfb_probe(struct platform_device *pdev)
 	fb_prepare_logo(fbi, 0);
 	fb_show_logo(fbi, 0);
 #endif
+
+	printk("%s: leave \n", __func__);
 
 	return 0;
 

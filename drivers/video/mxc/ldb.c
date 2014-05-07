@@ -29,6 +29,7 @@
 #include <linux/platform_device.h>
 #include <linux/err.h>
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/console.h>
 #include <linux/io.h>
 #include <linux/ipu.h>
@@ -38,6 +39,7 @@
 #include <linux/fsl_devices.h>
 #include <mach/hardware.h>
 #include <mach/clock.h>
+#include <mach/gpio.h>
 #include "mxc_dispdrv.h"
 
 #define DISPDRV_LDB	"ldb"
@@ -78,6 +80,14 @@
 
 #define LDB_SPLIT_MODE_EN		0x00000010
 
+/*
+ * Panel and LVDS control
+ */
+#define HAWTHORNE_LVDS_BL_EN	IMX_GPIO_NR(2,9)	
+#define HAWTHORNE_DISP_BL_EN	IMX_GPIO_NR(2,10)	
+#define HAWTHORNE_DISP_EN		IMX_GPIO_NR(2,11)	
+
+
 struct ldb_data {
 	struct platform_device *pdev;
 	struct mxc_dispdrv_handle *disp_ldb;
@@ -88,6 +98,7 @@ struct ldb_data {
 	struct regulator *lvds_bg_reg;
 	int mode;
 	bool inited;
+	bool setup;
 	struct ldb_setting {
 		struct clk *di_clk;
 		struct clk *ldb_di_clk;
@@ -253,13 +264,23 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 	struct ldb_data *ldb = mxc_dispdrv_getdata(disp);
 	int setting_idx, di;
 
+	
+	if(ldb->setup) {
+		printk("%s: ldb->setup = %d \n",__func__, ldb->setup);
+		return 0;
+	}
+
+
 	setting_idx = find_ldb_setting(ldb, fbi);
 	if (setting_idx < 0)
 		return setting_idx;
 
 	di = ldb->setting[setting_idx].di;
 
-	printk("%s: ----------------------------\n",__func__);
+	//printk("%s: ----------------------------\n",__func__);
+	printk("%s: \n",__func__);
+	printk("%s: ldb->inited = %d \n",__func__, ldb->inited);
+	printk("%s: ldb->setup = %d \n",__func__, ldb->setup);
 
 	/* restore channel mode setting */
 	val = readl(ldb->control_reg);
@@ -291,9 +312,10 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 	if (ldb->setting[setting_idx].clk_en)
 		clk_disable(ldb->setting[setting_idx].ldb_di_clk);
 
-	//pixel_clk = (PICOS2KHZ(fbi->var.pixclock)) * 1000UL;
+	pixel_clk = (PICOS2KHZ(fbi->var.pixclock)) * 1000UL;
+	
+	/*
 	pixel_clk = 25200000;
-
 	printk("%s: pixel_clk=%u \n",__func__,pixel_clk);
 	printk("%s: xres=%d \n",__func__,fbi->var.xres);
 	printk("%s: yres=%d \n",__func__,fbi->var.yres);
@@ -303,7 +325,8 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 	printk("%s: lower_margin=%d \n",__func__,fbi->var.lower_margin);
 	printk("%s: hsync_len=%d \n",__func__,fbi->var.hsync_len);
 	printk("%s: vsync_len=%d \n",__func__,fbi->var.vsync_len);
-	
+	*/
+
 	ldb_clk_parent = clk_get_parent(ldb->setting[setting_idx].ldb_di_clk);
 	if ((ldb->mode == LDB_SPL_DI0) || (ldb->mode == LDB_SPL_DI1))
 		clk_set_rate(ldb_clk_parent, pixel_clk * 7 / 2);
@@ -318,8 +341,8 @@ static int ldb_disp_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 	clk_enable(ldb->setting[setting_idx].ldb_di_clk);
 	if (!ldb->setting[setting_idx].clk_en)
 		ldb->setting[setting_idx].clk_en = true;
-
-	printk("%s: ----------------------------\n\n",__func__);
+	
+	ldb->setup = true;
 
 	return 0;
 }
@@ -352,22 +375,36 @@ int ldb_fb_event(struct notifier_block *nb, unsigned long val, void *v)
 		}
 		return 0;
 	}
+		
+	printk("%s: val = 0x%0X \n",__func__, val);
+	printk("%s: event->data = %d \n",__func__, *(int *)event->data);
+	printk("%s: clk_en = %d \n",__func__, ldb->setting[index].clk_en);
 
 	switch (val) {
 	case FB_EVENT_BLANK:
 	{
+		printk("%s: FB_EVENT_BLANK = %d \n",__func__, val);
 		if (*((int *)event->data) == FB_BLANK_UNBLANK) {
-			if (!ldb->setting[index].clk_en) {
+			printk("%s: FB_BLANK_UNBLANK = %d \n",__func__, val);
+			//if (!ldb->setting[index].clk_en) {
+				printk("%s: enable ldb_di_clk \n", __func__);
 				clk_enable(ldb->setting[index].ldb_di_clk);
 				ldb->setting[index].clk_en = true;
-			}
+				printk("%s: turing on panel \n", __func__);
+				gpio_set_value(HAWTHORNE_DISP_EN,1);
+				gpio_set_value(HAWTHORNE_LVDS_BL_EN,1);
+			//}
 		} else {
 			if (ldb->setting[index].clk_en) {
+				printk("%s: disable ldb_di_clk \n", __func__);	
 				clk_disable(ldb->setting[index].ldb_di_clk);
 				ldb->setting[index].clk_en = false;
-				data = readl(ldb->control_reg);
-				data &= ~ldb->setting[index].ch_mask;
-				writel(data, ldb->control_reg);
+				//data = readl(ldb->control_reg);
+				//data &= ~ldb->setting[index].ch_mask;
+				//writel(data, ldb->control_reg);
+				printk("%s: turing off panel \n", __func__);
+				gpio_set_value(HAWTHORNE_LVDS_BL_EN,0);
+				gpio_set_value(HAWTHORNE_DISP_EN,0);
 				dev_dbg(&ldb->pdev->dev,
 					"LDB blank, control reg:0x%x\n",
 						readl(ldb->control_reg));
@@ -376,6 +413,7 @@ int ldb_fb_event(struct notifier_block *nb, unsigned long val, void *v)
 		break;
 	}
 	case FB_EVENT_SUSPEND:
+		printk("%s: FB_EVENT_SUSPEND \n",__func__);
 		if (ldb->setting[index].clk_en) {
 			clk_disable(ldb->setting[index].ldb_di_clk);
 			ldb->setting[index].clk_en = false;
@@ -469,6 +507,9 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 					" use default RGB666\n");
 		setting->if_fmt = IPU_PIX_FMT_RGB666;
 	}
+
+	printk("%s: \n",__func__);
+	printk("%s: ldb->inited = %d \n",__func__, ldb->inited);
 
 	if (!ldb->inited) {
 		char di_clk[] = "ipu1_di0_clk";

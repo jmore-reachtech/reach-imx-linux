@@ -75,7 +75,11 @@
 #define HAWTHORNE_MIPICSI_PWN	IMX_GPIO_NR(1, 6)
 #define HAWTHORNE_MIPICSI_RESET	IMX_GPIO_NR(4, 14)
 
-#define HAWTHORNE_ECSPI1_CS2         IMX_GPIO_NR(3, 24)
+#define HAWTHORNE_ECSPI1_CS2    IMX_GPIO_NR(3, 24)
+
+#define HAWTHORNE_LVDS_BL_EN	IMX_GPIO_NR(2,9)	
+#define HAWTHORNE_DISP_BL_EN	IMX_GPIO_NR(2,10)	
+#define HAWTHORNE_DISP_EN		IMX_GPIO_NR(2,11)	
 
 
 /* Syntactic sugar for pad configuration */
@@ -733,11 +737,17 @@ static void __init hawthorne_init_lcd(void)
 
 	gpio_request(IMX_GPIO_NR(2, 10), "disp0_bklen");
 	gpio_direction_output(IMX_GPIO_NR(2, 10), 1);
-	//gpio_set_value(IMX_GPIO_NR(2,10),0);
 
 	gpio_request(IMX_GPIO_NR(2, 11), "disp0_vdden");
 	gpio_direction_output(IMX_GPIO_NR(2, 11), 1);
+
+	//gpio_set_value(IMX_GPIO_NR(2,10),1);
+	//gpio_set_value(IMX_GPIO_NR(2,9),1);
 	//gpio_set_value(IMX_GPIO_NR(2,11),0);
+
+	gpio_set_value(HAWTHORNE_DISP_BL_EN,0);
+	gpio_set_value(HAWTHORNE_LVDS_BL_EN,0);
+	gpio_set_value(HAWTHORNE_DISP_EN,0);
 
 	imx6q_add_vdoa();
 
