@@ -62,10 +62,10 @@
 #define HAWTHORNE_SD3_CD		IMX_GPIO_NR(3, 9)
 #define HAWTHORNE_SD3_WP		IMX_GPIO_NR(1, 10)
 
-#define HAWTHORNE_USB_OTG_OC	IMX_GPIO_NR(1, 9)
-#define HAWTHORNE_USB_OTG_PWR	IMX_GPIO_NR(4, 15)
-#define HAWTHORNE_USB_HOST1_PWR	IMX_GPIO_NR(3, 31)
-#define HAWTHORNE_USB_H1_OC		IMX_GPIO_NR(1, 3)
+#define HAWTHORNE_USB_OTG_OC		IMX_GPIO_NR(1, 9)
+#define HAWTHORNE_USB_OTG_PWR_EN	IMX_GPIO_NR(4, 15)
+#define HAWTHORNE_USB_HOST_PWR_EN	IMX_GPIO_NR(3, 31)
+#define HAWTHORNE_USB_HOST_OC		IMX_GPIO_NR(1, 3)
 
 #define HAWTHORNE_WL_REF_ON		IMX_GPIO_NR(2, 29)
 #define HAWTHORNE_WL_RST_N		IMX_GPIO_NR(5, 2)
@@ -441,35 +441,43 @@ static __init void hawthorne_init_ethernet(void)
  *
  ****************************************************************************/
 
-static void hawthorne_usbotg_vbus(bool on)
+static void hawthorne_usbotg_vbus(bool on) 
 {
-	gpio_set_value_cansleep(HAWTHORNE_USB_OTG_PWR, !on);
+	printk("%s: turn otg pwr %d \n", __func__, on);
 }
 
 /* ------------------------------------------------------------------------ */
 
 static __init void hawthorne_init_usb(void)
 {
-	IMX6_SETUP_PAD(GPIO_9__GPIO_1_9); // OTG OC
-	IMX6_SETUP_PAD(GPIO_1__USBOTG_ID); //OTG ID
-	//IMX6_SETUP_PAD(EIM_D22__GPIO_3_22);
-	//IMX6_SETUP_PAD(EIM_D30__GPIO_3_30);
-	IMX6_SETUP_PAD(KEY_ROW4__GPIO_4_15); // OTG Pwr EN
-	IMX6_SETUP_PAD(GPIO_3__GPIO_1_3); // host 1 OC
 
-	gpio_request(HAWTHORNE_USB_OTG_OC, "otg oc");
+	IMX6_SETUP_PAD( GPIO_9__GPIO_1_9 );
+    IMX6_SETUP_PAD( GPIO_1__USBOTG_ID );
+    //IMX6_SETUP_PAD( EIM_D22__GPIO_3_22 );
+    //IMX6_SETUP_PAD( EIM_D30__GPIO_3_30 );
+	
+	IMX6_SETUP_PAD( KEY_ROW4__GPIO_4_15 ); // OTG Pwr EN
+	IMX6_SETUP_PAD( GPIO_3__GPIO_1_3 ); // host 1 OC 
+        
+    gpio_request(HAWTHORNE_USB_OTG_OC, "otg oc");
 	gpio_direction_input(HAWTHORNE_USB_OTG_OC);
 
-	gpio_request(HAWTHORNE_USB_OTG_PWR, "otg pwr");
-	gpio_direction_output(HAWTHORNE_USB_OTG_PWR, 0);
+    gpio_request(HAWTHORNE_USB_OTG_PWR_EN, "otg pwr");
+	gpio_direction_output(HAWTHORNE_USB_OTG_PWR_EN, 0);
+
+	/* USB host power is n.c on Wand baseboard */
+	gpio_request(HAWTHORNE_USB_HOST_PWR_EN, "host pwr");
+	gpio_direction_output(HAWTHORNE_USB_HOST_PWR_EN, 1);
 
 	imx_otg_base = MX6_IO_ADDRESS(MX6Q_USB_OTG_BASE_ADDR);
+	/* GPR1: bit 13 == 1 means GPIO1 is OTG_ID pin */
 	mxc_iomux_set_gpr_register(1, 13, 1, 1);
 
 	mx6_set_otghost_vbus_func(hawthorne_usbotg_vbus);
 
-	gpio_request(HAWTHORNE_USB_H1_OC, "usbh1 oc");
-	gpio_direction_input(HAWTHORNE_USB_H1_OC);
+    gpio_request(HAWTHORNE_USB_HOST_OC, "usbh1 oc");
+	gpio_direction_input(HAWTHORNE_USB_HOST_OC);
+
 }
 
 
