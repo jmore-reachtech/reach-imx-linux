@@ -463,7 +463,7 @@ static __init void hawthorne_init_usb(void)
 	gpio_direction_input(HAWTHORNE_USB_OTG_OC);
 
     gpio_request(HAWTHORNE_USB_OTG_PWR_EN, "otg pwr");
-	gpio_direction_output(HAWTHORNE_USB_OTG_PWR_EN, 0);
+	gpio_direction_output(HAWTHORNE_USB_OTG_PWR_EN, 1);
 
 	/* USB host power is n.c on Wand baseboard */
 	gpio_request(HAWTHORNE_USB_HOST_PWR_EN, "host pwr");
