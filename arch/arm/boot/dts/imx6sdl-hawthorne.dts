@@ -1,0 +1,28 @@
+/*
+ * Copyright 2013 Freescale Semiconductor, Inc.
+ *
+ * Author: Fabio Estevam <fabio.estevam@freescale.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+#include "imx6sdl-hawthorne.dtsi"
+
+/ {
+	model = "Hawthorne i.MX6 Solo Dual Lite Board";
+	compatible = "reach,imx6sdl-hawthorne", "fsl,imx6dl";
+};
+
+&mxcfb1 {
+	status = "okay";
+};
+
+&epdc {
+	status = "disabled";
+};
