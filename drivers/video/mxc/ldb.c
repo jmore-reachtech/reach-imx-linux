@@ -24,6 +24,8 @@
  * @brief This file contains the LDB driver device interface and fops
  * functions.
  */
+#define DEBUG
+ 
 #include <linux/types.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -32,6 +34,7 @@
 #include <linux/clk.h>
 #include <linux/console.h>
 #include <linux/io.h>
+#include <linux/of_gpio.h>
 #include <linux/ipu.h>
 #include <linux/mxcfb.h>
 #include <linux/regulator/consumer.h>
@@ -104,6 +107,9 @@ struct fsl_mxc_ldb_platform_data {
 	/*only work for separate mode*/
 	int sec_ipu_id;
 	int sec_disp_id;
+	
+	int lvds_en_gpio;
+	int disp_en_gpio;
 };
 
 struct ldb_data {
@@ -136,6 +142,21 @@ static int g_ldb_mode;
 
 static struct fb_videomode ldb_modedb[] = {
 	{
+          .name                   = "LDB-VGA", 
+          .refresh                = 60, 
+          .xres                   = 640, 
+          .yres                   = 480, 
+          .pixclock               = 39683,
+          .left_margin			  = 48, 
+          .right_margin			  = 16,
+          .upper_margin			  = 31, 
+          .lower_margin			  = 11,
+          .hsync_len              = 96, 
+          .vsync_len              = 2,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },{
 	 "LDB-WXGA", 60, 1280, 800, 14065,
 	 40, 40,
 	 10, 3,
@@ -250,9 +271,11 @@ static int ldb_get_of_property(struct platform_device *pdev,
 				struct fsl_mxc_ldb_platform_data *plat_data)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device *dev = &pdev->dev;
 	int err;
 	u32 ipu_id, disp_id;
 	u32 sec_ipu_id, sec_disp_id;
+	u32 disp_en_gpio, lvds_en_gpio;
 	char *mode;
 	u32 ext_ref;
 
@@ -286,13 +309,43 @@ static int ldb_get_of_property(struct platform_device *pdev,
 		dev_dbg(&pdev->dev, "get of property sec_disp_id fail\n");
 		return err;
 	}
-
+	
+	disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
+	if (!gpio_is_valid(disp_en_gpio)) {
+		printk("%s: no disp_en_gpio pin available\n", __func__);
+		return -ENODEV;
+	} else {
+		printk("%s: disp_en_gpio pin available on %d\n", __func__, disp_en_gpio);
+	}
+	err = devm_gpio_request_one(dev, disp_en_gpio, GPIOF_OUT_INIT_HIGH,
+					"disp_en_gpio");
+	if (err < 0) {
+		printk("%s: \n", __func__);
+		return err;
+	}
+	
+	lvds_en_gpio = of_get_named_gpio(np, "lvds_en_gpio", 0);
+	if (!gpio_is_valid(lvds_en_gpio)) {
+		printk("%s: no lvds_en_gpio pin available\n", __func__);
+		return -ENODEV;
+	} else {
+		printk("%s: lvds_en_gpio pin available on %d\n", __func__, lvds_en_gpio);
+	}
+	err = devm_gpio_request_one(dev, lvds_en_gpio, GPIOF_OUT_INIT_HIGH,
+					"lvds_en_gpio");
+	if (err < 0) {
+		printk("%s: \n", __func__);
+		return err;
+	} 
+	
 	plat_data->mode = parse_ldb_mode(mode);
 	plat_data->ext_ref = ext_ref;
 	plat_data->ipu_id = ipu_id;
 	plat_data->disp_id = disp_id;
 	plat_data->sec_ipu_id = sec_ipu_id;
 	plat_data->sec_disp_id = sec_disp_id;
+	plat_data->lvds_en_gpio = lvds_en_gpio;
+	plat_data->disp_en_gpio = disp_en_gpio;
 
 	return err;
 }
@@ -429,6 +482,11 @@ int ldb_fb_event(struct notifier_block *nb, unsigned long val, void *v)
 	}
 
 	switch (val) {
+	case FB_EVENT_FB_REGISTERED:
+	{
+		fb_show_logo(fbi, 0);
+		break;
+	}
 	case FB_EVENT_BLANK:
 	{
 		if (*((int *)event->data) == FB_BLANK_UNBLANK) {
@@ -556,6 +614,11 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 			dev_err(&ldb->pdev->dev, "get iomem fail.\n");
 			return -ENOMEM;
 		}
+		
+		/* turn on the backlight */
+		printk("turning on backlight \n");
+		//gpio_set_value(plat_data->lvds_en_gpio, 1);
+		//gpio_set_value(plat_data->disp_en_gpio, 1);
 
 		ldb->reg = devm_ioremap(&ldb->pdev->dev, res->start,
 					resource_size(res));
@@ -576,7 +639,8 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 
 		/* TODO: now only use SPWG data mapping for both channel */
 		reg &= ~(LDB_BIT_MAP_CH0_MASK | LDB_BIT_MAP_CH1_MASK);
-		reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
+		//reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
+		reg |= LDB_BIT_MAP_CH0_JEIDA | LDB_BIT_MAP_CH1_JEIDA;
 
 		/* channel mode setting */
 		reg &= ~(LDB_CH0_MODE_MASK | LDB_CH1_MODE_MASK);
@@ -825,6 +889,7 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 		struct fb_videomode m;
 		fb_var_to_videomode(&m, &setting->fbi->var);
 		if (fb_mode_is_equal(&m, &ldb_modedb[i])) {
+			pr_debug("%s: adding mode %d [%s] \n", __func__, i, ldb_modedb[i].name);
 			fb_add_videomode(&ldb_modedb[i],
 					&setting->fbi->modelist);
 			break;
