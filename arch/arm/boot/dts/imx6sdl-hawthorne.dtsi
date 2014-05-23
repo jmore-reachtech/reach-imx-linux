@@ -312,6 +312,14 @@ reference manual.
 			>;
 		};
 	};
+
+	ecspi1 {
+		pinctrl_ecspi1_cs_1: ecspi1_cs_grp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D24__GPIO3_IO24 0x80000000
+			>;
+		};
+	};
 };
 
 
@@ -399,5 +407,41 @@ reference manual.
 	vmmc-supply = <&reg_3p3v>;
     cd-gpios = <&gpio3 9 0>;
 	status = "okay";
+};
+
+&ecspi1 {
+	fsl,spi-num-chipselects = <1>;
+	cs-gpios = <&gpio3 24 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi1_1 &pinctrl_ecspi1_cs_1>;
+	status = "okay";
+
+	flash: m25p80@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "st,m25p32";
+		spi-max-frequency = <20000000>;
+		reg = <0>;
+
+		mtd0@00000000 {
+			label = "boot";
+			reg = <0x00000000 0x00080000>;
+		};
+
+		mtd1@00080000 {
+			label = "bootenv";
+			reg = <0x00080000 0x00020000>;
+		};
+
+		mtd2@000A0000 {
+			label = "genenv";
+			reg = <0x000A0000 0x00040000>;
+		};
+
+		mtd3@000E0000 {
+			label = "kernel";
+			reg = <0x000E0000 0x00300000>;
+		};
+	};
 };
 
