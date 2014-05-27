@@ -107,12 +107,12 @@
 &i2c1 {
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c1_1>;
+	pinctrl-0 = <&pinctrl_i2c1_2>;
 	status = "okay";
 
-	hdmi: edid@50 {
-		compatible = "fsl,imx6-hdmi-i2c";
-		reg = <0x50>;
+	temp {
+		compatible = "jc42";
+		reg = <0x1D>;
 	};
 
 };
