@@ -24,7 +24,6 @@
  * @brief This file contains the LDB driver device interface and fops
  * functions.
  */
-#define DEBUG
  
 #include <linux/types.h>
 #include <linux/init.h>
@@ -614,11 +613,6 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 			dev_err(&ldb->pdev->dev, "get iomem fail.\n");
 			return -ENOMEM;
 		}
-		
-		/* turn on the backlight */
-		printk("turning on backlight \n");
-		//gpio_set_value(plat_data->lvds_en_gpio, 1);
-		//gpio_set_value(plat_data->disp_en_gpio, 1);
 
 		ldb->reg = devm_ioremap(&ldb->pdev->dev, res->start,
 					resource_size(res));
