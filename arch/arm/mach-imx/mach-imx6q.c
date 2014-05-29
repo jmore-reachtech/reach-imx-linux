@@ -47,6 +47,9 @@ static int flexcan_en_gpio;
 static int flexcan_stby_gpio;
 static int flexcan0_en;
 static int flexcan1_en;
+static int usbh1_en_gpio;
+static int otg_en_gpio;
+
 static void mx6q_flexcan_switch(void)
 {
 	if (flexcan0_en || flexcan1_en) {
@@ -100,6 +103,41 @@ static int __init imx6q_flexcan_fixup_auto(void)
 		/* flexcan 0 & 1 are using the same GPIOs for transceiver */
 		flexcan_pdata[0].transceiver_switch = imx6q_flexcan0_switch_auto;
 		flexcan_pdata[1].transceiver_switch = imx6q_flexcan1_switch_auto;
+	}
+
+	return 0;
+}
+
+/*
+ * We have power enable on a GPIO but it's not called in the driver
+ * so we'll set it up here
+ */
+static int __init imx6q_usb_fixup(void)
+{
+	struct device_node *np;
+
+	np = of_find_node_by_path("/soc/aips-bus@02100000/usb@02184200");
+	if (!np) {
+		return -ENODEV;
+	}
+
+	usbh1_en_gpio = of_get_named_gpio(np, "en_gpio", 0);
+	if (gpio_is_valid(usbh1_en_gpio)) {
+		pr_debug("%s: enbale usbh1 power \n", __func__);
+		gpio_request_one(usbh1_en_gpio, GPIOF_DIR_OUT, "usbh1_pwr_en");
+		gpio_set_value(usbh1_en_gpio, 1);
+	}
+
+	np = of_find_node_by_path("/soc/aips-bus@02100000/usb@02184000");
+	if (!np) {
+		return -ENODEV;
+	}
+
+	otg_en_gpio = of_get_named_gpio(np, "en_gpio", 0);
+	if (gpio_is_valid(usbh1_en_gpio)) {
+		pr_debug("%s: enbale otg power \n", __func__);
+		gpio_request_one(otg_en_gpio, GPIOF_DIR_OUT, "otg_pwr_en");
+		gpio_set_value(otg_en_gpio, 1);
 	}
 
 	return 0;
@@ -456,6 +494,10 @@ static void __init imx6q_init_late(void)
 		|| of_machine_is_compatible("fsl,imx6dl-sabreauto")) {
 		imx6q_flexcan_fixup_auto();
 		imx6q_audio_lvds2_init();
+	}
+
+	if (of_machine_is_compatible("reach,imx6sdl-hawthorne")) {
+		imx6q_usb_fixup();
 	}
 }
 

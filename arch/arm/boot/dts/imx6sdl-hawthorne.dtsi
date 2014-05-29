@@ -170,7 +170,6 @@ reference manual.
 		pinctrl_hog_1: hoggrp-1 {
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_0__CCM_CLKO1     	0x130b0
-				MX6QDL_PAD_EIM_D22__GPIO3_IO22		0x80000000	/* USB Power Enable */
 				MX6QDL_PAD_EIM_DA9__GPIO3_IO09		0x80000000	/* uSDHC3 CD */
 				MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x000b0		/* SGTL5000 sys_mclk */
 				MX6QDL_PAD_GPIO_6__GPIO1_IO06		0x0b0b0		/* ov5640 mipi powerdown */
@@ -204,6 +203,8 @@ reference manual.
 				MX6QDL_PAD_SD3_RST__GPIO7_IO08    0x80000000 /* GPIO7_8  EDM pin 264 */
 				MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x80000000 /* GPIO2_8  LVDS0_EN */
 				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000  /* LCD PWR_EN */
+				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000  /* USB Power Enable */
+				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000  /* OTG Power Enable */
 			>;
 		};
 	};
@@ -215,6 +216,7 @@ reference manual.
 			>;
 		};
 	};
+
 };
 
 &ldb {
@@ -249,6 +251,7 @@ reference manual.
 
 &usbh1 {
 	status = "okay";
+	en_gpio = <&gpio3 31 1>;
 };
 
 &usbotg {
@@ -256,7 +259,8 @@ reference manual.
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg_1>;
 	disable-over-current;
-	dr_mode = "peripheral";
+	dr_mode = "host";
+	en_gpio = <&gpio4 15 1>;
 	status = "okay";
 };
 
