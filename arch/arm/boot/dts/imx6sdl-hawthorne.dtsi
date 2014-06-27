@@ -259,7 +259,6 @@ reference manual.
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg_1>;
 	disable-over-current;
-	dr_mode = "host";
 	en_gpio = <&gpio4 15 1>;
 	status = "okay";
 };
