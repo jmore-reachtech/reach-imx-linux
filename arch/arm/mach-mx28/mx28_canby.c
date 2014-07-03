@@ -120,6 +120,14 @@ static struct i2c_board_info __initdata mxs_i2c_device[] = {
 		.platform_data = &touch_i2c_conf,
 	},
 #endif
+
+#if defined(CONFIG_TOUCHSCREEN_NUTOUCH) || \
+	defined(CONFIG_TOUCHSCREEN_NUTOUCH)
+	{
+		I2C_BOARD_INFO("NuTouch", 0x55),
+		.irq = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(0x2, 19)),
+	},
+#endif
 };
 
 static void __init i2c_device_init(void)

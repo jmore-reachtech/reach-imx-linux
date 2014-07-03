@@ -22,6 +22,17 @@ config TOUCHSCREEN_SITRONIX_I2C_TOUCH
 	  To compile this driver as a module, choose M here: the
 	  module will be called sitronix_i2c_touch.
 
+config TOUCHSCREEN_NUTOUCH
+	tristate "Nutouch I2C Multi-Touch Controller"
+	depends on I2C
+	---help---
+	Say Y here if you have a Nutouch multitouch panel.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called nutouch.
+
 config TOUCHSCREEN_88PM860X
 	tristate "Marvell 88PM860x touchscreen"
 	depends on MFD_88PM860X
