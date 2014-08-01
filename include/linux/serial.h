@@ -210,9 +210,11 @@ struct serial_rs485 {
 #define SER_RS485_ENABLED		(1 << 0)
 #define SER_RS485_RTS_ON_SEND		(1 << 1)
 #define SER_RS485_RTS_AFTER_SEND	(1 << 2)
-	__u32	delay_rts_before_send;	/* Milliseconds */
-	__u32	padding[6];		/* Memory is cheap, new structs
-					   are a royal PITA .. */
+	__u32	delay_rts_before_send;	/* Delay before send (microseconds) */
+	__u32	delay_rts_after_send;	/* Delay after send (microseconds) */
+	__u32	delay_rts_last_char_tx;	/* Delay for last char Tx from FIFO (microseconds)
+					   This delay is automatically calculated from baudrate */
+	__u32	padding[4];		/* Memory is cheap, new structs are a royal PITA .. */
 };
 
 #ifdef __KERNEL__
