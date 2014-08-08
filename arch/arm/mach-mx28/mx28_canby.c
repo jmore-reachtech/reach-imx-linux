@@ -122,9 +122,17 @@ static struct i2c_board_info __initdata mxs_i2c_device[] = {
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_NUTOUCH) || \
-	defined(CONFIG_TOUCHSCREEN_NUTOUCH)
+	defined(CONFIG_TOUCHSCREEN_NUTOUCH_MODULE)
 	{
 		I2C_BOARD_INFO("NuTouch", 0x55),
+		.irq = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(0x2, 19)),
+	},
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_EVERVISION) || \
+	defined(CONFIG_TOUCHSCREEN_EVERVISION_MODULE)
+	{
+		I2C_BOARD_INFO("Evervision", 0x38),
 		.irq = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(0x2, 19)),
 	},
 #endif
