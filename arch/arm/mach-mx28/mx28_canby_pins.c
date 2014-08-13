@@ -49,11 +49,12 @@ static struct pin_desc mx28canby_fixed_pins[] = {
 	 .id    = PINID_AUART0_TX,
 	 .fun   = PIN_FUN1,
 	 },
-	{
-	 .name  = "AUART0.RTS", //RS485 RTS (J11)
-	 .id    = PINID_AUART0_RTS,
-	 .fun   = PIN_FUN1,
-	 },
+      /* we'll set this in the driver */
+//	{
+//	 .name  = "AUART0.RTS", //RS485 RTS (J11)
+//	 .id    = PINID_AUART0_RTS,
+//	 .fun   = PIN_FUN1,
+//	 },
 #endif
 #ifdef CONFIG_MXS_AUART1_DEVICE_ENABLE
      {
@@ -90,11 +91,12 @@ static struct pin_desc mx28canby_fixed_pins[] = {
      .id    = PINID_SAIF0_SDATA0,
      .fun   = PIN_FUN3,
      },
-    {
-     .name  = "AUART4.RTS",  //RS485 RTS (J7)
-     .id    = PINID_SAIF0_LRCLK,
-     .fun   = PIN_FUN3,
-     }, 
+      /* we'll set this in the driver */
+//    {
+//     .name  = "AUART4.RTS",  //RS485 RTS (J7)
+//     .id    = PINID_SAIF0_LRCLK,
+//     .fun   = PIN_FUN3,
+//     }, 
 #endif
 #if defined(CONFIG_USB_OTG)
 	 {

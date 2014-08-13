@@ -103,6 +103,8 @@ struct mxs_auart_plat_data {
 	unsigned int timeout;
 	unsigned int dma_rx_buffer_size;
 	const char *clk;
+    int (*rs485_enable) (int);
+    int (*rs485_disable) (int);
 };
 
 struct mxs_pwm_led {

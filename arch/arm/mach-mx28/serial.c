@@ -26,13 +26,18 @@
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 
+#include <mach/pinctrl.h>
 #include <mach/hardware.h>
 #include <mach/device.h>
 #include <mach/dma.h>
 #include "device.h"
+#include "mx28_pins.h"
 
 #if defined(CONFIG_SERIAL_MXS_AUART) || \
 	defined(CONFIG_SERIAL_MXS_AUART_MODULE)
+
+static int auart_rs485_enable(int line);
+static int auart_rs485_disable(int line);
 
 #ifdef CONFIG_MXS_AUART0_DEVICE_ENABLE
 static struct resource auart0_resource[] = {
@@ -75,6 +80,8 @@ static struct mxs_auart_plat_data mxs_auart0_platdata = {
 #endif
 	.dma_rx_buffer_size = PAGE_SIZE,
 	.timeout = HZ,
+    .rs485_enable = auart_rs485_enable, 
+    .rs485_disable = auart_rs485_disable, 
 };
 #endif
 
@@ -251,6 +258,8 @@ static struct mxs_auart_plat_data mxs_auart4_platdata = {
 #endif
 	.dma_rx_buffer_size = PAGE_SIZE,
 	.timeout = HZ,
+    .rs485_enable = auart_rs485_enable, 
+    .rs485_disable = auart_rs485_disable, 
 };
 #endif
 
@@ -312,3 +321,43 @@ void __init mx28_init_auart(void)
 {
 }
 #endif
+
+static int auart_rs485_enable(int line)
+{
+    printk("%s: RS-485 enabled line %d \n", __func__, line);
+
+    /* only AUART0 and AUART4 are RS-485*/
+    switch(line) {
+        case 0:
+            mxs_request_pin(PINID_AUART0_RTS, PIN_FUN1, "AUART0.RTS");
+            break;
+        case 1:
+            mxs_request_pin(PINID_SAIF0_LRCLK, PIN_FUN3, "AUART4.RTS");
+            break;
+    }
+
+    return 0;
+}
+
+static int auart_rs485_disable(int line)
+{
+    printk("%s: RS-485 disabled line %d \n", __func__, line);
+    
+    /* only AUART0 and AUART4 are RS-485 */
+    switch(line) {
+        case 0:
+            mxs_release_pin(PINID_AUART0_RTS, "AUART0.RTS");
+            gpio_request(MXS_PIN_TO_GPIO(PINID_AUART0_RTS), "AUART0.RTS");
+            gpio_direction_input(MXS_PIN_TO_GPIO(PINID_AUART0_RTS));
+            gpio_free(MXS_PIN_TO_GPIO(PINID_AUART0_RTS));
+            break;
+        case 1:
+            mxs_release_pin(PINID_SAIF0_LRCLK, "AUART4.RTS");
+            gpio_request(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK), "AUART4.RTS"); 
+            gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK));
+            gpio_free(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK));
+            break;
+    }
+
+    return 0;
+}

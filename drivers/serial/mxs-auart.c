@@ -45,6 +45,7 @@
 #include <mach/hardware.h>
 #include <mach/device.h>
 #include <mach/dmaengine.h>
+#include <mach/pinctrl.h>
 
 #include "regs-uartapp.h"
 
@@ -73,6 +74,8 @@ struct mxs_auart_port {
 	struct mxs_dma_desc *tx;
 	struct tasklet_struct rx_task;
 	struct serial_rs485 rs485;
+    int (*rs485_enable) (int);
+    int (*rs485_disable) (int);
 };
 
 static void mxs_auart_stop_tx(struct uart_port *u);
@@ -597,8 +600,11 @@ static void mxs_auart_settermios(struct uart_port *u,
 		ctrl2 &= ~BM_UARTAPP_CTRL2_RTSEN;
 		ctrl2 &= ~BM_UARTAPP_CTRL2_RTS;
         ctrl2 |= BM_UARTAPP_CTRL2_INVERT_RTS;
+        if (s->rs485_enable) {
+            s->rs485_enable(s->port.line);
+        }
 	}
-
+    
 	/* set baud rate */
 	baud = uart_get_baud_rate(u, termios, old, 0, u->uartclk);
 	div = u->uartclk * 32 / baud;
@@ -715,6 +721,8 @@ static inline void mxs_auart_reset(struct uart_port *u)
 	int i;
 	unsigned int reg;
 
+    printk("%s: \n", __func__);
+
 	__raw_writel(BM_UARTAPP_CTRL0_SFTRST,
 		     u->membase + HW_UARTAPP_CTRL0_CLR);
 
@@ -732,6 +740,8 @@ static inline void mxs_auart_reset(struct uart_port *u)
 static int mxs_auart_startup(struct uart_port *u)
 {
 	struct mxs_auart_port *s = to_auart_port(u);
+
+    printk("%s: \n", __func__);
 
 	mxs_auart_reset(u);
 
@@ -779,8 +789,11 @@ static void mxs_auart_shutdown(struct uart_port *u)
 {
 	struct mxs_auart_port *s = to_auart_port(u);
 
+    printk("%s: \n", __func__);
+
 	__raw_writel(BM_UARTAPP_CTRL0_SFTRST,
 		     s->port.membase + HW_UARTAPP_CTRL0_SET);
+    
 
 	if (s->flags & MXS_AUART_PORT_DMA_MODE)
 		mxs_auart_dma_exit(s);
@@ -789,6 +802,13 @@ static void mxs_auart_shutdown(struct uart_port *u)
 				BM_UARTAPP_INTR_CTSMIEN,
 			     s->port.membase + HW_UARTAPP_INTR_CLR);
 	mxs_auart_free_irqs(s);
+   
+	if ((s->rs485.flags & SER_RS485_ENABLED) && s->rs485_disable) {
+        printk("%s: rs485.flags enabled, disabling \n", __func__);
+        s->rs485_disable(s->port.line);
+	    s->rs485.flags = 0x0;
+    }
+    
 }
 
 static unsigned int mxs_auart_tx_empty(struct uart_port *u)
@@ -1085,6 +1105,14 @@ static int __devinit mxs_auart_probe(struct platform_device *pdev)
 		ret = PTR_ERR(s->clk);
 		goto out_free;
 	}
+
+	if (plat && plat->rs485_enable) {
+        s->rs485_enable = plat->rs485_enable;
+    }
+    
+	if (plat && plat->rs485_disable) {
+        s->rs485_disable = plat->rs485_disable;
+    }
 
 	clk_enable(s->clk);
 
