@@ -331,9 +331,11 @@ static int auart_rs485_enable(int line)
         case 0:
             mxs_request_pin(PINID_AUART0_RTS, PIN_FUN1, "AUART0.RTS");
             break;
-        case 1:
+        case 4:
             mxs_request_pin(PINID_SAIF0_LRCLK, PIN_FUN3, "AUART4.RTS");
             break;
+        default:
+            printk("%s: Line %d unsupported! \n", __func__, line);
     }
 
     return 0;
@@ -351,12 +353,14 @@ static int auart_rs485_disable(int line)
             gpio_direction_input(MXS_PIN_TO_GPIO(PINID_AUART0_RTS));
             gpio_free(MXS_PIN_TO_GPIO(PINID_AUART0_RTS));
             break;
-        case 1:
+        case 4:
             mxs_release_pin(PINID_SAIF0_LRCLK, "AUART4.RTS");
             gpio_request(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK), "AUART4.RTS"); 
             gpio_direction_input(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK));
             gpio_free(MXS_PIN_TO_GPIO(PINID_SAIF0_LRCLK));
             break;
+        default:
+            printk("%s: Line %d unsupported! \n", __func__, line);
     }
 
     return 0;
