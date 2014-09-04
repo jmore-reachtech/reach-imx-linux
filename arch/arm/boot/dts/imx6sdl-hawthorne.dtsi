@@ -202,9 +202,10 @@ reference manual.
 				MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* GPIO4_5  EDM pin 263 */
 				MX6QDL_PAD_SD3_RST__GPIO7_IO08    0x80000000 /* GPIO7_8  EDM pin 264 */
 				MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x80000000 /* GPIO2_8  LVDS0_EN */
-				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000  /* LCD PWR_EN */
-				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000  /* USB Power Enable */
-				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000  /* OTG Power Enable */
+				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000 /* LCD PWR_EN */
+				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
+				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
+                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000 /* PEN IRQ */
 			>;
 		};
 	};
@@ -213,6 +214,7 @@ reference manual.
 		pinctrl_ecspi1_cs_1: ecspi1_cs_grp-1 {
 			fsl,pins = <
 				MX6QDL_PAD_EIM_D24__GPIO3_IO24 0x80000000
+				MX6QDL_PAD_EIM_D25__GPIO3_IO25 0x80000000
 			>;
 		};
 	};
@@ -272,18 +274,18 @@ reference manual.
 };
 
 &ecspi1 {
-	fsl,spi-num-chipselects = <1>;
-	cs-gpios = <&gpio3 24 0>;
+	fsl,spi-num-chipselects = <4>;
+	cs-gpios = <0>, <0>, <&gpio3 24 0>, <&gpio3 25 0> ;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1_1 &pinctrl_ecspi1_cs_1>;
 	status = "okay";
 
-	flash: m25p80@0 {
+	flash: m25p80@2 {
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "st,m25p32";
 		spi-max-frequency = <20000000>;
-		reg = <0>;
+		reg = <2>;
 
 		mtd0@00000000 {
 			label = "boot";
@@ -305,6 +307,31 @@ reference manual.
 			reg = <0x000E0000 0x00300000>;
 		};
 	};
+
+    touch: tsc2046@3 {
+        compatible = "ti,tsc2046";
+        reg = <3>;
+        spi-max-frequency = <100000>;
+        interrupt-parent = <&gpio7>;
+        interrupts = <13 0>;
+        pendown-gpio = <&gpio7 13 0>;
+        vcc-supply = <&reg_3p3v>;
+
+        ti,x-min = /bits/ 16 <150>;
+        ti,x-max = /bits/ 16 <3830>;
+        ti,y-min = /bits/ 16 <190>;
+        ti,y-max = /bits/ 16 <3830>;
+        ti,vref-delay-usecs = /bits/ 16 <450>;
+        ti,x-plate-ohms = /bits/ 16 <450>;
+        ti,y-plate-ohms = /bits/ 16 <250>;
+        ti,pressure-max = /bits/ 16 <15000>;
+
+        ti,debounce-rep = /bits/ 16 <0>;
+        ti,debounce-tol = /bits/ 16 <65535>;
+        ti,debounce-max = /bits/ 16 <1>;
+
+        linux,wakeup;
+    };
 };
 
 &gpmi {
