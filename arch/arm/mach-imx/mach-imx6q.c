@@ -10,6 +10,8 @@
  * http://www.gnu.org/copyleft/gpl.html
  */
 
+#define DEBUG
+
 #include <linux/can/platform/flexcan.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
@@ -49,6 +51,13 @@ static int flexcan0_en;
 static int flexcan1_en;
 static int usbh1_en_gpio;
 static int otg_en_gpio;
+
+static struct dip {
+    int pin1;
+    int pin2;
+    int pin3;
+    int pin4;
+} dip_switch;
 
 static void mx6q_flexcan_switch(void)
 {
@@ -106,6 +115,42 @@ static int __init imx6q_flexcan_fixup_auto(void)
 	}
 
 	return 0;
+}
+
+/*
+ * We need to setup the GPIO here
+ */
+static int __init imx6q_dip_fixup(void)
+{
+	struct device_node *np;
+
+    np = of_find_node_by_path("/dipswitch");
+    if (!np) {
+        pr_err("dipswitch of node not found! \n");
+        return -ENODEV;
+    }
+ 
+    dip_switch.pin1 = of_get_named_gpio(np,"dip-pin-1", 0);
+	if (gpio_is_valid(dip_switch.pin1)) {
+		gpio_request_one(dip_switch.pin1, GPIOF_DIR_IN, "dip-pin-1");
+    }
+
+    dip_switch.pin2 = of_get_named_gpio(np,"dip-pin-2", 0);
+	if (gpio_is_valid(dip_switch.pin2)) {
+		gpio_request_one(dip_switch.pin2, GPIOF_DIR_IN, "dip-pin-2");
+    }
+
+    dip_switch.pin3 = of_get_named_gpio(np,"dip-pin-3", 0);
+	if (gpio_is_valid(dip_switch.pin3)) {
+		gpio_request_one(dip_switch.pin3, GPIOF_DIR_IN, "dip-pin-3");
+    }
+
+    dip_switch.pin4 = of_get_named_gpio(np,"dip-pin-4", 0);
+	if (gpio_is_valid(dip_switch.pin4)) {
+		gpio_request_one(dip_switch.pin4, GPIOF_DIR_IN, "dip-pin-4");
+    }
+
+    return 0;
 }
 
 /*
@@ -498,6 +543,7 @@ static void __init imx6q_init_late(void)
 
 	if (of_machine_is_compatible("reach,imx6sdl-hawthorne")) {
 		imx6q_usb_fixup();
+		imx6q_dip_fixup();
 	}
 }
 
