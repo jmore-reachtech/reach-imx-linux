@@ -87,6 +87,15 @@
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <7>;
 	};
+
+    dipswitch {
+		compatible = "reach,dipswitch";
+        dip-pin-1 = <&gpio1 20 1>;
+        dip-pin-2 = <&gpio1 17 1>;
+        dip-pin-3 = <&gpio1 19 1>;
+        dip-pin-4 = <&gpio1 21 1>;
+        status = "okay";
+    };
 };
 
 
@@ -205,7 +214,11 @@ reference manual.
 				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000 /* LCD PWR_EN */
 				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
-                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000 /* PEN IRQ */
+                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ */
+                MX6QDL_PAD_SD1_CLK__GPIO1_IO20    0x80000000    /* SW_OPT1 */ 
+                MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
+                MX6QDL_PAD_SD1_DAT2__GPIO1_IO19   0x80000000    /* SW_OPT3 */ 
+                MX6QDL_PAD_SD1_DAT3__GPIO1_IO21   0x80000000    /* SW_OPT4 */ 
 			>;
 		};
 	};
