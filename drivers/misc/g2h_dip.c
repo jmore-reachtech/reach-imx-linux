@@ -41,6 +41,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
 #include <linux/gpio.h>
+#include <linux/g2h_dip.h>
 
 typedef struct dipswitch_t {
     int pin1;
@@ -52,8 +53,7 @@ typedef struct dipswitch_t {
 static struct dipswitch_t dipswitch;
 static struct kobject *dipswitch_kobj;
 
-static ssize_t dipswitch_show(struct device *dev,
-				     struct device_attribute *attr, char *buf)
+int dipswitch_get_value()
 {
     int val = 0;
     
@@ -61,8 +61,17 @@ static ssize_t dipswitch_show(struct device *dev,
     val |= (gpio_get_value(dipswitch.pin2) >> 16);
     val |= (gpio_get_value(dipswitch.pin3) >> 17);
     val |= (gpio_get_value(dipswitch.pin4) >> 18);
+  
+    printk("%s: dip value %d \n", __func__, val);
 
-	return sprintf(buf, "%d\n", val);
+    return val;
+}
+EXPORT_SYMBOL_GPL(dipswitch_get_value);
+
+static ssize_t dipswitch_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", dipswitch_get_value());
 }
 
 static DEVICE_ATTR(val, 0664, dipswitch_show, NULL);
@@ -134,7 +143,8 @@ static void __exit dipswitch_exit(void)
     pr_info("%s: \n", __func__);    
 }
 
-module_init(dipswitch_init);
+//module_init(dipswitch_init);
+subsys_initcall(dipswitch_init);
 module_exit(dipswitch_exit);
 
 MODULE_AUTHOR("Jeff Horn");
