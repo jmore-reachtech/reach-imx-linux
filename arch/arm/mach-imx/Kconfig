@@ -857,6 +857,13 @@ config SOC_VF610
 	help
 	  This enable support for Freescale Vybrid VF610 processor.
 
+config REACH_LDB_PLL5
+    bool "Use PLL5 for the LDB Clock"
+    default no
+    help
+        This clock is for panels that need clock speeds
+        under 25Mz
+
 endif
 
 source "arch/arm/mach-imx/devices/Kconfig"

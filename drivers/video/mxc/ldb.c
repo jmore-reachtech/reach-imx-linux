@@ -110,6 +110,9 @@ struct fsl_mxc_ldb_platform_data {
 	
 	int lvds_en_gpio;
 	int disp_en_gpio;
+#define LDB_CHANNEL_MAPPING_JEIDA 1
+#define LDB_CHANNEL_MAPPING_SPWG  2
+    int channel_mapping;
 };
 
 struct ldb_data {
@@ -155,22 +158,29 @@ static struct fb_videomode ldb_modedb[] = {
           .vmode                  = FB_VMODE_NONINTERLACED,
           .flag                   = 0,
     },{
+          .name                   = "LDB-XGA", 
+          .refresh                = 60, 
+          .xres                   = 1024, 
+          .yres                   = 768, 
+          .pixclock               = 15384,
+          .left_margin			  = 220, 
+          .right_margin			  = 40,
+          .upper_margin			  = 21, 
+          .lower_margin			  = 7,
+          .hsync_len              = 60, 
+          .vsync_len              = 10,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },{
 	 "LDB-WXGA", 60, 1280, 800, 14065,
 	 40, 40,
 	 10, 3,
 	 80, 10,
 	 0,
 	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 "LDB-XGA", 60, 1024, 768, 15385,
-	 220, 40,
-	 21, 7,
-	 60, 10,
-	 0,
-	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
+	 FB_MODE_IS_DETAILED,
+    },{
 	 "LDB-1080P60", 60, 1920, 1080, 7692,
 	 100, 40,
 	 30, 3,
@@ -179,6 +189,7 @@ static struct fb_videomode ldb_modedb[] = {
 	 FB_VMODE_NONINTERLACED,
 	 FB_MODE_IS_DETAILED,},
 };
+
 static int ldb_modedb_sz = ARRAY_SIZE(ldb_modedb);
 
 static inline int is_imx6_ldb(struct fsl_mxc_ldb_platform_data *plat_data)
@@ -211,6 +222,24 @@ static int valid_mode(int pixel_fmt)
 		(pixel_fmt == IPU_PIX_FMT_LVDS666) ||
 		(pixel_fmt == IPU_PIX_FMT_RGB666) ||
 		(pixel_fmt == IPU_PIX_FMT_BGR666));
+}
+
+static int parse_ldb_channel_mapping_mode(char *mode)
+{
+	int channel_mapping;
+
+	if (!strcmp(mode, "JEIDA")) {
+        pr_debug("channel mapping JEIDA\n");
+		channel_mapping = LDB_CHANNEL_MAPPING_JEIDA;
+    } else if (!strcmp(mode, "SPWG")) {
+        pr_debug("channel mapping SPWG\n");
+		channel_mapping = LDB_CHANNEL_MAPPING_SPWG;
+    } else {
+        pr_warn("channel mapping undefined\n");
+		channel_mapping = -EINVAL;
+    }
+
+	return channel_mapping;
 }
 
 static int parse_ldb_mode(char *mode)
@@ -275,11 +304,17 @@ static int ldb_get_of_property(struct platform_device *pdev,
 	u32 sec_ipu_id, sec_disp_id;
 	u32 disp_en_gpio, lvds_en_gpio;
 	char *mode;
+	char *mapping;
 	u32 ext_ref;
 
 	err = of_property_read_string(np, "mode", (const char **)&mode);
 	if (err) {
 		dev_dbg(&pdev->dev, "get of property mode fail\n");
+		return err;
+	}
+	err = of_property_read_string(np, "channel_mapping", (const char **)&mapping);
+	if (err) {
+		dev_dbg(&pdev->dev, "get of property channel mapping fail\n");
 		return err;
 	}
 	err = of_property_read_u32(np, "ext_ref", &ext_ref);
@@ -307,35 +342,30 @@ static int ldb_get_of_property(struct platform_device *pdev,
 		dev_dbg(&pdev->dev, "get of property sec_disp_id fail\n");
 		return err;
 	}
-	
 	disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
 	if (!gpio_is_valid(disp_en_gpio)) {
-		printk("%s: no disp_en_gpio pin available\n", __func__);
+		dev_dbg(&pdev->dev, "get of property disp_en_gpio fail\n");
 		return -ENODEV;
-	} else {
-		printk("%s: disp_en_gpio pin available on %d\n", __func__, disp_en_gpio);
-	}
+	} 
 	err = devm_gpio_request_one(dev, disp_en_gpio, GPIOF_OUT_INIT_HIGH,
-					"disp_en_gpio");
+                    "disp_en_gpio");
 	if (err < 0) {
-		printk("%s: \n", __func__);
+	    dev_dbg(&pdev->dev, "request disp enable gpio fail \n");
 		return err;
 	}
-	
 	lvds_en_gpio = of_get_named_gpio(np, "lvds_en_gpio", 0);
 	if (!gpio_is_valid(lvds_en_gpio)) {
-		printk("%s: no lvds_en_gpio pin available\n", __func__);
+		dev_dbg(&pdev->dev, "get of property lvds_en_gpio fail\n");
 		return -ENODEV;
-	} else {
-		printk("%s: lvds_en_gpio pin available on %d\n", __func__, lvds_en_gpio);
 	}
 	err = devm_gpio_request_one(dev, lvds_en_gpio, GPIOF_OUT_INIT_HIGH,
 					"lvds_en_gpio");
 	if (err < 0) {
-		printk("%s: \n", __func__);
+	    dev_dbg(&pdev->dev, "request lvds enable gpio fail \n");
 		return err;
 	} 
 	
+    plat_data->channel_mapping = parse_ldb_channel_mapping_mode(mapping);
 	plat_data->mode = parse_ldb_mode(mode);
 	plat_data->ext_ref = ext_ref;
 	plat_data->ipu_id = ipu_id;
@@ -580,10 +610,16 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 		else
 			reg |= LDB_BGREF_RMODE_INT;
 
-		/* TODO: now only use SPWG data mapping for both channel */
 		reg &= ~(LDB_BIT_MAP_CH0_MASK | LDB_BIT_MAP_CH1_MASK);
-		//reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
-		reg |= LDB_BIT_MAP_CH0_JEIDA | LDB_BIT_MAP_CH1_JEIDA;
+        /* select channel mapping based on platform data */
+        switch (plat_data->channel_mapping) {
+            case LDB_CHANNEL_MAPPING_JEIDA:
+		        reg |= LDB_BIT_MAP_CH0_JEIDA | LDB_BIT_MAP_CH1_JEIDA;break;
+            case LDB_CHANNEL_MAPPING_SPWG:
+		        reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;break;
+            default:
+		        reg |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;break;
+        }
 
 		/* channel mode setting */
 		reg &= ~(LDB_CH0_MODE_MASK | LDB_CH1_MODE_MASK);
