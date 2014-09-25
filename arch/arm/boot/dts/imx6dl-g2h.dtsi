@@ -13,6 +13,7 @@
  */
 
 / {
+
 	memory {
 		reg = <0x10000000 0x40000000>;
 	};
@@ -61,7 +62,7 @@
 		default-brightness-level = <7>;
 	};
 
-    dipswitch {
+    dipswitch: dipswitch@0 {
 		compatible = "reach,dipswitch";
         dip-pin-1 = <&gpio1 20 1>;
         dip-pin-2 = <&gpio1 17 1>;
@@ -92,9 +93,18 @@
 	pinctrl-0 = <&pinctrl_i2c1_2>;
 	status = "okay";
 
-	temp {
+	temp@1d {
 		compatible = "jc42";
 		reg = <0x1D>;
+		status = "okay";
+	};
+
+	evervision: touch@38 {
+		compatible = "evervision_ts";
+		reg = <0x38>;
+		interrupt-parent = <&gpio4>;
+       	interrupts = <5 0>;
+		status = "disabled";
 	};
 
 };
@@ -187,7 +197,8 @@ reference manual.
 				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x80000000 /* LCD PWR_EN */
 				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
-                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ */
+                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ TSC2056 */
+                MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */  
                 /* 4 position dip switch */
                 MX6QDL_PAD_SD1_CLK__GPIO1_IO20    0x80000000    /* SW_OPT1 */ 
                 MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
@@ -312,7 +323,7 @@ reference manual.
 		};
 	};
 
-    touch: tsc2046@3 {
+    tsc2046: touch@3 {
         compatible = "ti,tsc2046";
         reg = <3>;
         spi-max-frequency = <100000>;
@@ -335,6 +346,7 @@ reference manual.
         ti,debounce-max = /bits/ 16 <1>;
 
         linux,wakeup;
+	    status = "disabled";
     };
 };
 
