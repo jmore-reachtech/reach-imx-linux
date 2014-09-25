@@ -92,7 +92,7 @@ static int dipswitch_parse_dt(void)
 
     pr_debug("%s: \n", __func__);
     
-    np = of_find_node_by_path("/dipswitch");
+    np = of_find_node_by_path("/dipswitch@0");
     if (!np) {
         pr_err("dipswitch of node not found! \n");
         return -ENODEV;
