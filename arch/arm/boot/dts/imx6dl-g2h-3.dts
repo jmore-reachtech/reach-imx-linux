@@ -24,7 +24,7 @@
 	compatible = "reach,imx6sdl-hawthorne", "fsl,imx6dl";
     
     aliases {
-		mxcfb0 = &mxcfb1;
+		mxcfb0      = &mxcfb1;
 	};
 
    mxcfb1: fb@0 {
@@ -48,6 +48,14 @@
 		status = "okay";
     }; 
 
+};
+
+&evervision {
+	status = "okay";
+};
+
+&dipswitch {
+    status = "okay";
 };
 
 &epdc {

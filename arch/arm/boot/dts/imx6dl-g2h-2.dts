@@ -39,7 +39,10 @@
 		status = "okay";
     };
 };
-	
+
+&dipswitch {
+    status = "okay";
+};
 
 &ldb {
 	ipu_id = <0>;
