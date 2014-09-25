@@ -124,7 +124,7 @@ static int __init imx6q_dip_fixup(void)
 {
 	struct device_node *np;
 
-    np = of_find_node_by_path("/dipswitch");
+    np = of_find_node_by_path("/dipswitch@0");
     if (!np) {
         pr_err("dipswitch of node not found! \n");
         return -ENODEV;
