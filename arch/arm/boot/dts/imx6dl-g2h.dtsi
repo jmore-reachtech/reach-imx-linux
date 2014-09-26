@@ -163,6 +163,7 @@ reference manual.
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_0__CCM_CLKO1     	0x130b0
 				MX6QDL_PAD_EIM_DA9__GPIO3_IO09		0x80000000	/* uSDHC3 CD */
+				MX6QDL_PAD_GPIO_4__GPIO1_IO04           0x80000000	/* uSDHC2 CD */
 				MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x000b0		/* SGTL5000 sys_mclk */
 				MX6QDL_PAD_GPIO_6__GPIO1_IO06		0x0b0b0		/* ov5640 mipi powerdown */
 				MX6QDL_PAD_KEY_COL4__GPIO4_IO14		0x000b0		/* ov5640 mipi reset */
@@ -300,6 +301,14 @@ reference manual.
 	pinctrl-0 = <&pinctrl_usdhc3_2>;
 	vmmc-supply = <&reg_3p3v>;
     cd-gpios = <&gpio3 9 0>;
+	status = "okay";
+};
+
+&usdhc2 { /* Module microSD slot */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2_2>;
+	vmmc-supply = <&reg_3p3v>;
+    	cd-gpios = <&gpio1 4 0>;
 	status = "okay";
 };
 
