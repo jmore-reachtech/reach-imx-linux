@@ -161,16 +161,8 @@ reference manual.
 	imx6sdl-hawthorne {
 		pinctrl_hog_1: hoggrp-1 {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_0__CCM_CLKO1     	0x130b0
-				MX6QDL_PAD_EIM_DA9__GPIO3_IO09		0x80000000	/* uSDHC3 CD */
-				MX6QDL_PAD_GPIO_4__GPIO1_IO04           0x80000000	/* uSDHC2 CD */
-				MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x000b0		/* SGTL5000 sys_mclk */
-				MX6QDL_PAD_GPIO_6__GPIO1_IO06		0x0b0b0		/* ov5640 mipi powerdown */
-				MX6QDL_PAD_KEY_COL4__GPIO4_IO14		0x000b0		/* ov5640 mipi reset */
-				MX6QDL_PAD_GPIO_3__CCM_CLKO2		0x000b0		/* ov5640 mclk */
-				MX6QDL_PAD_ENET_RXD1__GPIO1_IO26	0x000b0		/* WL_REG_ON (unused) */
-				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29	0x80000000	/* WL_HOST_WAKE, input */
-				MX6QDL_PAD_ENET_TXD0__GPIO1_IO30	0x80000000	/* WL_WAKE (unused) */
+			    MX6QDL_PAD_GPIO_2__GPIO1_IO02       0x80000000	/* uSDHC3 CD */
+				MX6QDL_PAD_GPIO_4__GPIO1_IO04       0x80000000	/* uSDHC2 CD */
 				MX6QDL_PAD_EIM_D29__GPIO3_IO29   	0x80000000
 			>;
 		};
@@ -296,20 +288,20 @@ reference manual.
 	status = "okay";
 };
 
-&usdhc3 { /* Module microSD slot */
+&usdhc3 { /* Push-pull microSD slot */
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc3_2>;
 	vmmc-supply = <&reg_3p3v>;
-    cd-gpios = <&gpio3 9 0>;
+    cd-gpios = <&gpio1 2 0>;
 	status = "okay";
 };
 
-&usdhc2 { /* Module microSD slot */
+&usdhc2 { /* Captive microSD slot */
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc2_2>;
 	vmmc-supply = <&reg_3p3v>;
-    	cd-gpios = <&gpio1 4 0>;
-	status = "okay";
+   	cd-gpios = <&gpio1 4 0>;
+	status = "disabled";
 };
 
 &ecspi1 {
