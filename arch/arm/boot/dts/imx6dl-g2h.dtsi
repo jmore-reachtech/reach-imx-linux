@@ -53,6 +53,22 @@
 			gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
 			enable-active-high;
 		};
+	};	
+
+    sound {
+		compatible = "fsl,imx6-hawthorne-sgtl5000", 
+                             "fsl,imx-audio-sgtl5000";
+		model = "imx6-hawthorne-sgtl5000";
+		ssi-controller = <&ssi1>;
+		audio-codec = <&codec>;
+		audio-routing =
+			"MIC_IN", "Mic Jack",
+			"Mic Jack", "Mic Bias",
+			"Headphone Jack", "HP_OUT";
+		mux-int-port = <1>;
+		mux-ext-port = <3>;
+        audio-stdby-gpio = <&gpio5 31 0>;
+        headphone-det-gpio = <&gpio4 11 0>;
 	};
 
 	backlight {
@@ -106,6 +122,15 @@
        	interrupts = <5 0>;
 		status = "disabled";
 	};
+
+    codec: sgtl5000@0a {
+		compatible = "fsl,sgtl5000";
+		reg = <0x0a>;
+		clocks = <&clks 201>;
+		VDDA-supply = <&reg_2p5v>;
+		VDDIO-supply = <&reg_3p3v>;
+	};
+
 
 };
 
@@ -164,14 +189,10 @@ reference manual.
 			    MX6QDL_PAD_GPIO_2__GPIO1_IO02       0x80000000	/* uSDHC3 CD */
 				MX6QDL_PAD_GPIO_4__GPIO1_IO04       0x80000000	/* uSDHC2 CD */
 				MX6QDL_PAD_EIM_D29__GPIO3_IO29   	0x80000000
+                MX6QDL_PAD_GPIO_0__CCM_CLKO1        0x000b0     /* SGTL5000 */
 			>;
 		};
 
-		pinctrl_spdif_hawthorne: spdifgrp {
-				fsl,pins = <
-			MX6QDL_PAD_ENET_RXD0__SPDIF_OUT			0x1b0b0
-		>;
-		};
 	};
 	gpio {
 		pinctrl_gpio: gpiogrp {
@@ -197,6 +218,8 @@ reference manual.
                 MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
                 MX6QDL_PAD_SD1_DAT2__GPIO1_IO19   0x80000000    /* SW_OPT3 */ 
                 MX6QDL_PAD_SD1_DAT3__GPIO1_IO21   0x80000000    /* SW_OPT4 */ 
+                MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000    /* Audio Standby */
+                MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
 			>;
 		};
 	};
@@ -249,6 +272,12 @@ reference manual.
 		};
 	};
 
+};
+
+&audmux {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_audmux_2>;
+	status = "okay";
 };
 
 &pwm3 {
