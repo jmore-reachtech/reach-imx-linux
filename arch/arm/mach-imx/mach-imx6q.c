@@ -154,6 +154,31 @@ static int __init imx6q_dip_fixup(void)
 }
 
 /*
+ * Enable audio amp
+ */
+static int __init imx6q_audio_fixup(void)
+{
+    struct device_node *np;
+    int audio;
+
+    np = of_find_node_by_path("/sound");
+    if (!np) {
+        pr_err("sound of node not found! \n");
+        return -ENODEV;
+    }
+    
+    audio = of_get_named_gpio(np,"audio-stdby-gpio", 0);
+	if (gpio_is_valid(audio)) {
+        printk("%s: enable audio stdby gpio \n", __func__);
+		gpio_request_one(audio, GPIOF_DIR_OUT, "audio-stdby");
+        gpio_set_value(audio, 1);
+    } 
+
+    return 0;
+}
+
+
+/*
  * We have power enable on a GPIO but it's not called in the driver
  * so we'll set it up here
  */
@@ -544,6 +569,7 @@ static void __init imx6q_init_late(void)
 	if (of_machine_is_compatible("reach,imx6sdl-hawthorne")) {
 		imx6q_usb_fixup();
 		imx6q_dip_fixup();
+		imx6q_audio_fixup();
 	}
 }
 
