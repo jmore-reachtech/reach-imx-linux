@@ -1,0 +1,63 @@
+/*
+ * Copyright 2013 Freescale Semiconductor, Inc.
+ *
+ * Author: Fabio Estevam <fabio.estevam@freescale.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+#include "imx6dl-g2h.dtsi"
+
+/ {
+    /*
+     * Panel: 5.7" VGA
+     * Touch: none
+     * Display Interface: LDB
+     * LDB Clock: PLL5
+     */
+	model = "Hawthorne i.MX6 Solo Dual Lite Board";
+	compatible = "reach,imx6sdl-hawthorne", "fsl,imx6dl";
+    
+    aliases {
+		mxcfb0 = &mxcfb1;
+	};
+
+   mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "ldb";
+		interface_pix_fmt = "RGB24";
+		mode_str ="LDB-VGA";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+    };
+
+};
+
+&dipswitch {
+    status = "okay";
+};
+
+&ldb {
+	ipu_id = <0>;
+	disp_id = <0>;
+	ext_ref = <1>;
+	mode = "sin0";
+	sec_ipu_id = <0>;
+	sec_disp_id = <0>;
+	lvds_en_gpio = <&gpio2 8 1>;
+	disp_en_gpio = <&gpio2 11 1>;
+    channel_mapping = "JEIDA";
+	status = "okay";
+};
+
+&epdc {
+	status = "disabled";
+};
