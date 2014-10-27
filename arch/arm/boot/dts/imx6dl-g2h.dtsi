@@ -321,9 +321,9 @@ reference manual.
 &usbotg {
 	vbus-supply = <&reg_usb_otg_vbus>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usbotg_3>;
+	pinctrl-0 = <&pinctrl_usbotg_1>;
 	disable-over-current;
-	en_gpio = <&gpio1 1 1>;
+	en_gpio = <&gpio4 15 1>;
 	status = "okay";
 };
 
@@ -356,6 +356,7 @@ reference manual.
 		compatible = "st,m25p32";
 		spi-max-frequency = <20000000>;
 		reg = <2>;
+        status = "disabled";
 
 		mtd0@00000000 {
 			label = "boot";
