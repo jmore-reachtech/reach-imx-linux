@@ -800,8 +800,14 @@ static void ads7846_report_state(struct ads7846 *ts)
 	}
 
 	/* range filtering */
-	if (x == MAX_12BIT)
+	if (x == MAX_12BIT) {
 		x = 0;
+	}
+
+	if (x == 4096 && y == 8191) {
+		pr_debug("Discarding x=%d,y=%d \n", x, y);
+		return;
+	}
 
 	if (ts->model == 7843) {
 		Rt = ts->pressure_max / 2;
