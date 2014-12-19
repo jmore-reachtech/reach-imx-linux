@@ -115,6 +115,13 @@
 		status = "okay";
 	};
 
+	pca953x@3e {
+		compatible = "nxp,pca9534";
+		#gpio-controller;
+		reg = <0x3E>;
+		status = "okay";
+	};
+
 	evervision: touch@38 {
 		compatible = "evervision_ts";
 		reg = <0x38>;
@@ -272,6 +279,15 @@ reference manual.
 		};
 	};
 
+	uart5 {
+		pinctrl_uart5_1: uart5grp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_CSI0_DAT15__UART5_RX_DATA 0x1b0b1
+				MX6QDL_PAD_CSI0_DAT14__UART5_TX_DATA 0x1b0b1
+			>;
+		};
+	};
+
 
 	usbotg {
 		pinctrl_usbotg_3: usbotggrp-3 {
@@ -310,6 +326,12 @@ reference manual.
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2_3>;
+	status = "okay";
+};
+
+&uart5 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart5_1>;
 	status = "okay";
 };
 
