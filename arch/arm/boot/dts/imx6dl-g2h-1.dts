@@ -45,6 +45,10 @@
 	status = "okay";
 };
 
+&spiflash {
+	status = "okay";
+};
+
 &dipswitch {
     status = "okay";
 };
