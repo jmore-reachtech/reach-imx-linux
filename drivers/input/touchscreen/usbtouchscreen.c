@@ -167,6 +167,7 @@ static const struct usb_device_id usbtouch_devices[] = {
 	{USB_DEVICE(0x0eef, 0x0002), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0001), .driver_info = DEVTYPE_EGALAX},
 	{USB_DEVICE(0x1234, 0x0002), .driver_info = DEVTYPE_EGALAX},
+	{USB_DEVICE(0x0eef, 0x7200), .driver_info = DEVTYPE_EGALAX},
 #endif
 
 #ifdef CONFIG_TOUCHSCREEN_USB_PANJIT
@@ -301,7 +302,7 @@ static int e2i_read_data(struct usbtouch_usb *dev, unsigned char *pkt)
 #endif
 
 #define EGALAX_PKT_TYPE_MASK		0xFE
-#define EGALAX_PKT_TYPE_REPT		0x80
+#define EGALAX_PKT_TYPE_REPT		0xA0//0x80
 #define EGALAX_PKT_TYPE_DIAG		0x0A
 
 static int egalax_init(struct usbtouch_usb *usbtouch)
