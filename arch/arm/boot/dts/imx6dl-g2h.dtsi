@@ -286,6 +286,15 @@ reference manual.
 		};
 	};
 
+	flexcan1 {
+		pinctrl_flexcan1_3: flexcan1grp-3 {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_8__FLEXCAN1_RX 0x80000000
+				MX6QDL_PAD_GPIO_7__FLEXCAN1_TX 0x80000000
+			>;
+		};
+	};
+
 
 	usbotg {
 		pinctrl_usbotg_3: usbotggrp-3 {
@@ -437,3 +446,8 @@ reference manual.
 	};
 };
 
+&flexcan1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan1_3>;
+	status = "disabled";
+};
