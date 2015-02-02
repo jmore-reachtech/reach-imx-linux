@@ -32,7 +32,7 @@
 		disp_dev = "lcd";
         interface_pix_fmt = "RGB666";
 		mode_str ="CLAA-WVGA";
-		default_bpp = <18>;
+		default_bpp = <32>;
 		int_clk = <0>;
 		late_init = <0>;
 		status = "okay";
