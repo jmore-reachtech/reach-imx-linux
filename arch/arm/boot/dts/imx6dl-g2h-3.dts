@@ -61,3 +61,7 @@
 &epdc {
 	status = "disabled";
 };
+
+&spiflash {
+	status = "okay";
+};
