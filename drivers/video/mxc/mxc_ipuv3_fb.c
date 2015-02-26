@@ -452,6 +452,11 @@ static int mxcfb_set_par(struct fb_info *fbi)
 		return -EINVAL;
 	}
 
+	if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable) {
+		pr_debug("%s: disable dispdrv \n", __func__);
+		mxc_fbi->dispdrv->drv->disable(mxc_fbi->dispdrv, fbi);
+	}
+
 	if (mxc_fbi->ovfbi)
 		mxc_fbi_fg = (struct mxcfb_info *)mxc_fbi->ovfbi->par;
 
