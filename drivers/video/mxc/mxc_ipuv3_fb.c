@@ -452,11 +452,6 @@ static int mxcfb_set_par(struct fb_info *fbi)
 		return -EINVAL;
 	}
 
-	if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable) {
-		pr_debug("%s: disable dispdrv \n", __func__);
-		mxc_fbi->dispdrv->drv->disable(mxc_fbi->dispdrv, fbi);
-	}
-
 	if (mxc_fbi->ovfbi)
 		mxc_fbi_fg = (struct mxcfb_info *)mxc_fbi->ovfbi->par;
 
@@ -494,6 +489,11 @@ static int mxcfb_set_par(struct fb_info *fbi)
 	ipu_disable_irq(mxc_fbi->ipu, mxc_fbi->ipu_ch_nf_irq);
 	ipu_disable_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch, true);
 	ipu_uninit_channel(mxc_fbi->ipu, mxc_fbi->ipu_ch);
+
+	if (mxc_fbi->dispdrv && mxc_fbi->dispdrv->drv->disable) {
+		pr_debug("%s: disable dispdrv \n", __func__);
+		mxc_fbi->dispdrv->drv->disable(mxc_fbi->dispdrv, fbi);
+	}
 
 	/*
 	 * Disable IPU hsp clock if it is enabled for an

@@ -128,11 +128,15 @@ void lcdif_deinit(struct mxc_dispdrv_handle *disp)
 int lcdif_setup (struct mxc_dispdrv_handle *disp,
 	struct fb_info *fbinfo)
 {
-	//struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
-	//struct mxc_lcd_platform_data *plat_data
-	//		= lcdif->pdev->dev.platform_data;
+	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
+	struct mxc_lcd_platform_data *plat_data
+			= lcdif->pdev->dev.platform_data;
 
-	pr_debug("%s: \n", __func__);
+	mdelay(100);
+	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
+        pr_debug("%s: enable lcd gpio \n", __func__);
+        gpio_set_value(plat_data->lcd_enable_gpio, 1);
+	}
 
 	return 0;
 }
@@ -145,13 +149,7 @@ int lcdif_enable (struct mxc_dispdrv_handle *disp,
 	struct mxc_lcd_platform_data *plat_data
 			= lcdif->pdev->dev.platform_data;
 
-	mdelay(100);
-	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
-        pr_debug("%s: enable lcd gpio \n", __func__);
-        gpio_set_value(plat_data->lcd_enable_gpio, 1);
-	}
-
-	mdelay(200);
+	mdelay(150);
 	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
         pr_debug("%s: enable backlight gpio \n", __func__);
         gpio_set_value(plat_data->backlight_enable_gpio, 1);
@@ -177,6 +175,7 @@ void lcdif_disable (struct mxc_dispdrv_handle *disp,
         pr_debug("%s: disable lcd gpio \n", __func__);
         gpio_set_value(plat_data->lcd_enable_gpio, 0);
 	}
+	mdelay(100);
 }
 
 static struct mxc_dispdrv_driver lcdif_drv = {
