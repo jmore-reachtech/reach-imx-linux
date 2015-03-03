@@ -85,6 +85,12 @@
         dip-pin-4 = <&gpio1 21 1>;
         status = "disabled";
     };
+
+	v4l2_out {
+		compatible = "fsl,mxc_v4l2_output";
+		status = "okay";
+	};
+
 };
 
 
