@@ -43,26 +43,32 @@
 #include <linux/gpio.h>
 #include <linux/g2h_dip.h>
 
-typedef struct dipswitch_t {
+#define PIN1_MASK 0x100000
+#define PIN2_MASK 0x20000
+#define PIN3_MASK 0x80000
+#define PIN4_MASK 0x200000
+
+struct dipswitch {
     int pin1;
     int pin2;
     int pin3;
     int pin4;
 };
 
-static struct dipswitch_t dipswitch;
+static struct dipswitch ds;
 static struct kobject *dipswitch_kobj;
 
 int dipswitch_get_value()
 {
     int val = 0;
-    
-    val |= (gpio_get_value(dipswitch.pin1) >> 20);
-    val |= (gpio_get_value(dipswitch.pin2) >> 16);
-    val |= (gpio_get_value(dipswitch.pin3) >> 17);
-    val |= (gpio_get_value(dipswitch.pin4) >> 18);
-  
-    printk("%s: dip value %d \n", __func__, val);
+	
+	/* read the pin and toggle, the reads are flipped , investigate */
+	val |= ((gpio_get_value(ds.pin1) & PIN1_MASK) >> 20) ^ (1 << 0);
+    val |= ((gpio_get_value(ds.pin2) & PIN2_MASK) >> 16) ^ (1 << 1);
+    val |= ((gpio_get_value(ds.pin3) & PIN3_MASK) >> 17) ^ (1 << 2);
+    val |= ((gpio_get_value(ds.pin4) & PIN4_MASK) >> 18) ^ (1 << 3);
+
+    pr_debug("%s: dip value %d \n", __func__, val);
 
     return val;
 }
@@ -99,20 +105,20 @@ static int dipswitch_parse_dt(void)
     }
     
     /* GPIO already set up in platform, just get GPIO pins */
-    dipswitch.pin1 = of_get_named_gpio(np,"dip-pin-1", 0);
-    if (!gpio_is_valid(dipswitch.pin1)) {
+    ds.pin1 = of_get_named_gpio(np,"dip-pin-1", 0);
+    if (!gpio_is_valid(ds.pin1)) {
         return -ENODEV;
     }
-    dipswitch.pin2 = of_get_named_gpio(np,"dip-pin-2", 0);
-    if (!gpio_is_valid(dipswitch.pin2)) {
+    ds.pin2 = of_get_named_gpio(np,"dip-pin-2", 0);
+    if (!gpio_is_valid(ds.pin2)) {
         return -ENODEV;
     }
-    dipswitch.pin3 = of_get_named_gpio(np,"dip-pin-3", 0);
-    if (!gpio_is_valid(dipswitch.pin3)) {
+    ds.pin3 = of_get_named_gpio(np,"dip-pin-3", 0);
+    if (!gpio_is_valid(ds.pin3)) {
         return -ENODEV;
     }
-    dipswitch.pin4 = of_get_named_gpio(np,"dip-pin-4", 0);
-    if (!gpio_is_valid(dipswitch.pin4)) {
+    ds.pin4 = of_get_named_gpio(np,"dip-pin-4", 0);
+    if (!gpio_is_valid(ds.pin4)) {
         return -ENODEV;
     }
 
