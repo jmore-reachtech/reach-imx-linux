@@ -38,30 +38,36 @@
 		status = "okay";
     };
 
-   lcd@0 {
-		compatible = "fsl,lcd";
-		ipu_id = <0>;
-		disp_id = <0>;
-		default_ifmt = "RGB666";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ipu1_4>;
-		status = "okay";
-    }; 
+       lcd@0 {
+                compatible = "fsl,lcd";
+                ipu_id = <0>;
+                disp_id = <0>;
+                default_ifmt = "RGB666";
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_ipu1_4>;
+                lcd-enable-gpio = <&gpio2 11 0>;
+                backlight-enable-gpio = <&gpio2 8 0>;
+                status = "okay";
+    };  
 
 };
 
-&evervision {
-	status = "okay";
+&spiflash {
+        status = "okay";
 };
 
 &dipswitch {
     status = "okay";
 };
 
-&epdc {
-	status = "disabled";
+&flexcan1 {
+        status = "okay";
 };
 
-&spiflash {
+&epdc {
+        status = "disabled";
+};
+
+&evervision {
 	status = "okay";
 };
