@@ -408,7 +408,7 @@ static void mxs_auart_submit_rx(struct mxs_auart_port *s)
 	struct mxs_dma_desc *pdesc;
 
 	pio_value = BM_UARTAPP_CTRL0_RXTO_ENABLE |
-		     BF_UARTAPP_CTRL0_RXTIMEOUT(0x80) |
+		     BF_UARTAPP_CTRL0_RXTIMEOUT(0x03) |
 		     BF_UARTAPP_CTRL0_XFER_COUNT(s->dma_rx_buffer_size);
 
 	list_for_each_safe(p, n, &s->free) {
