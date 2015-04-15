@@ -135,13 +135,13 @@ static ssize_t beeper_beep_store(struct kobject *kobj, struct kobj_attribute *at
 {
 	ktime_t ktime;
 	
-	pr_info("TURN ON BEEPER \n");
+	pr_debug("TURN ON BEEPER \n");
 	__raw_writel(BF_PWM_CTRL_PWM_ENABLE(PWM4),
 			 REGS_PWM_BASE + HW_PWM_CTRL_SET);
 	__raw_writel(BF_PWM_CTRL_PWM_ENABLE(PWM7),
 			 REGS_PWM_BASE + HW_PWM_CTRL_SET);
 	
-	pr_info( "Starting timer to fire in %lu ms  (%ld)\n", duration, jiffies );
+	pr_debug( "Starting timer to fire in %lu ms  (%ld)\n", duration, jiffies );
 	ktime = ktime_set( 0, duration*((unsigned long)1E6L) );
 	hrtimer_start( &hr_timer, ktime, HRTIMER_MODE_REL );
 		
@@ -182,7 +182,7 @@ static struct kobject *beeper_kobj;
 
 enum hrtimer_restart beeper_hrtimer_callback( struct hrtimer *timer )
 {
-	printk( "beeper_hrtimer_callback called (%ld).\n", jiffies );
+	pr_debug( "beeper_hrtimer_callback called (%ld).\n", jiffies );
 	
 	__raw_writel(BF_PWM_CTRL_PWM_ENABLE(PWM4),
 		REGS_PWM_BASE + HW_PWM_CTRL_CLR);
@@ -219,7 +219,7 @@ static int __init beeper_init(void)
 {
 	int ret;
 	
-	pr_info("\nSucceeded in registering device\n");
+	pr_debug("\nSucceeded in registering device\n");
 	
 	beeper_status();
 	
@@ -254,10 +254,10 @@ static void __exit beeper_exit(void)
 {
 	int ret;
 	
-	pr_info("\ndevice unregistered\n");
+	pr_debug("\ndevice unregistered\n");
 
 	ret = hrtimer_cancel( &hr_timer );
-	pr_info("HR Timer module uninstalling\n");
+	pr_debug("HR Timer module uninstalling\n");
 	
 	/* turn off */
 	__raw_writel(BF_PWM_CTRL_PWM_ENABLE(PWM4),
