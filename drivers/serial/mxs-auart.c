@@ -721,8 +721,6 @@ static inline void mxs_auart_reset(struct uart_port *u)
 	int i;
 	unsigned int reg;
 
-    printk("%s: \n", __func__);
-
 	__raw_writel(BM_UARTAPP_CTRL0_SFTRST,
 		     u->membase + HW_UARTAPP_CTRL0_CLR);
 
@@ -740,8 +738,6 @@ static inline void mxs_auart_reset(struct uart_port *u)
 static int mxs_auart_startup(struct uart_port *u)
 {
 	struct mxs_auart_port *s = to_auart_port(u);
-
-    printk("%s: \n", __func__);
 
 	mxs_auart_reset(u);
 
@@ -789,8 +785,6 @@ static void mxs_auart_shutdown(struct uart_port *u)
 {
 	struct mxs_auart_port *s = to_auart_port(u);
 
-    printk("%s: \n", __func__);
-
 	__raw_writel(BM_UARTAPP_CTRL0_SFTRST,
 		     s->port.membase + HW_UARTAPP_CTRL0_SET);
     
@@ -804,7 +798,7 @@ static void mxs_auart_shutdown(struct uart_port *u)
 	mxs_auart_free_irqs(s);
    
 	if ((s->rs485.flags & SER_RS485_ENABLED) && s->rs485_disable) {
-        printk("%s: rs485.flags enabled, disabling \n", __func__);
+        pr_debug("%s: rs485.flags enabled, disabling \n", __func__);
         s->rs485_disable(s->port.line);
 	    s->rs485.flags = 0x0;
     }
