@@ -324,7 +324,7 @@ void __init mx28_init_auart(void)
 
 static int auart_rs485_enable(int line)
 {
-    printk("%s: RS-485 enabled line %d \n", __func__, line);
+    pr_debug("%s: RS-485 enabled line %d \n", __func__, line);
 
     /* only AUART0 and AUART4 are RS-485*/
     switch(line) {
@@ -343,7 +343,7 @@ static int auart_rs485_enable(int line)
 
 static int auart_rs485_disable(int line)
 {
-    printk("%s: RS-485 disabled line %d \n", __func__, line);
+    pr_debug("%s: RS-485 disabled line %d \n", __func__, line);
     
     /* only AUART0 and AUART4 are RS-485 */
     switch(line) {
