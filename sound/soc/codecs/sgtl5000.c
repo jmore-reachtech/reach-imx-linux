@@ -154,12 +154,12 @@ static int power_vag_event(struct snd_soc_dapm_widget *w,
 	struct snd_kcontrol *kcontrol, int event)
 {
 	switch (event) {
-	case SND_SOC_DAPM_PRE_PMU:
+	case SND_SOC_DAPM_POST_PMU:
 		snd_soc_update_bits(w->codec, SGTL5000_CHIP_ANA_POWER,
 			SGTL5000_VAG_POWERUP, SGTL5000_VAG_POWERUP);
 		break;
 
-	case SND_SOC_DAPM_POST_PMD:
+	case SND_SOC_DAPM_PRE_PMD:
 		snd_soc_update_bits(w->codec, SGTL5000_CHIP_ANA_POWER,
 			SGTL5000_VAG_POWERUP, 0);
 		msleep(400);
@@ -220,12 +220,11 @@ static const struct snd_soc_dapm_widget sgtl5000_dapm_widgets[] = {
 				0, SGTL5000_CHIP_DIG_POWER,
 				1, 0),
 
-	SND_SOC_DAPM_SUPPLY("VAG_POWER", SGTL5000_CHIP_ANA_POWER, 7, 0,
-			    power_vag_event,
-			    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-
 	SND_SOC_DAPM_ADC("ADC", "Capture", SGTL5000_CHIP_ANA_POWER, 1, 0),
 	SND_SOC_DAPM_DAC("DAC", "Playback", SGTL5000_CHIP_ANA_POWER, 3, 0),
+	
+	SND_SOC_DAPM_PRE("VAG_POWER_PRE", power_vag_event),
+	SND_SOC_DAPM_POST("VAG_POWER_POST", power_vag_event),
 };
 
 /* routes for sgtl5000 */
@@ -233,16 +232,13 @@ static const struct snd_soc_dapm_route sgtl5000_dapm_routes[] = {
 	{"Capture Mux", "LINE_IN", "LINE_IN"},	/* line_in --> adc_mux */
 	{"Capture Mux", "MIC_IN", "MIC_IN"},	/* mic_in --> adc_mux */
 
-	{"ADC", NULL, "VAG_POWER"},
 	{"ADC", NULL, "Capture Mux"},		/* adc_mux --> adc */
 	{"AIFOUT", NULL, "ADC"},		/* adc --> i2s_out */
 
-	{"DAC", NULL, "VAG_POWER"},
 	{"DAC", NULL, "AIFIN"},			/* i2s-->dac,skip audio mux */
 	{"Headphone Mux", "DAC", "DAC"},	/* dac --> hp_mux */
 	{"LO", NULL, "DAC"},			/* dac --> line_out */
 
-	{"LINE_IN", NULL, "VAG_POWER"},
 	{"Headphone Mux", "LINE_IN", "LINE_IN"},/* line_in --> hp_mux */
 	{"HP", NULL, "Headphone Mux"},		/* hp_mux --> hp */
 
@@ -1372,10 +1368,10 @@ static int sgtl5000_probe(struct snd_soc_codec *codec)
 	if (ret)
 		goto err;
 
+	printk("%s: small pop \n", __func__);
 	/* enable small pop, introduce 400ms delay in turning off */
 	snd_soc_update_bits(codec, SGTL5000_CHIP_REF_CTRL,
-				SGTL5000_SMALL_POP,
-				SGTL5000_SMALL_POP);
+			SGTL5000_SMALL_POP, 1);
 
 	/* disable short cut detector */
 	snd_soc_write(codec, SGTL5000_CHIP_SHORT_CTRL, 0);
@@ -1469,31 +1465,6 @@ static const struct regmap_config sgtl5000_regmap = {
 	.num_reg_defaults = ARRAY_SIZE(sgtl5000_reg_defaults),
 };
 
-/*
- * Write all the default values from sgtl5000_reg_defaults[] array into the
- * sgtl5000 registers, to make sure we always start with the sane registers
- * values as stated in the datasheet.
- *
- * Since sgtl5000 does not have a reset line, nor a reset command in software,
- * we follow this approach to guarantee we always start from the default values
- * and avoid problems like, not being able to probe after an audio playback
- * followed by a system reset or a 'reboot' command in Linux
- */
-static int sgtl5000_fill_defaults(struct sgtl5000_priv *sgtl5000)
-{
-	int i, ret, val, index;
-
-	for (i = 0; i < ARRAY_SIZE(sgtl5000_reg_defaults); i++) {
-		val = sgtl5000_reg_defaults[i].def;
-		index = sgtl5000_reg_defaults[i].reg;
-		ret = regmap_write(sgtl5000->regmap, index, val);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
 static int sgtl5000_i2c_probe(struct i2c_client *client,
 			      const struct i2c_device_id *id)
 {
@@ -1525,6 +1496,9 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	ret = clk_prepare_enable(sgtl5000->mclk);
 	if (ret)
 		return ret;
+	
+	/* Need 8 clocks before I2C accesses */
+	udelay(1);
 
 	/* read chip information */
 	ret = regmap_read(sgtl5000->regmap, SGTL5000_CHIP_ID, &reg);
@@ -1543,11 +1517,6 @@ static int sgtl5000_i2c_probe(struct i2c_client *client,
 	dev_info(&client->dev, "sgtl5000 revision 0x%x\n", rev);
 
 	i2c_set_clientdata(client, sgtl5000);
-
-	/* Ensure sgtl5000 will start with sane register values */
-	ret = sgtl5000_fill_defaults(sgtl5000);
-	if (ret)
-		goto disable_clk;
 
 	ret = snd_soc_register_codec(&client->dev,
 			&sgtl5000_driver, &sgtl5000_dai, 1);
