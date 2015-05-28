@@ -1,0 +1,478 @@
+/*
+ * Copyright 2014 John Weber, Avnet Electronics Marketing
+ * Copyright 2013 Boundary Devices
+ * Copyright 2012 Freescale Semiconductor, Inc.
+ * Copyright 2011 Linaro Ltd.
+ *
+ * The code contained herein is licensed under the GNU General Public
+ * License. You may obtain a copy of the GNU General Public License
+ * Version 2 or later at the following locations:
+ *
+ * http://www.opensource.org/licenses/gpl-license.html
+ * http://www.gnu.org/copyleft/gpl.html
+ */
+
+/ {
+
+	memory {
+		reg = <0x10000000 0x40000000>;
+	};
+
+	regulators {
+		compatible = "simple-bus";
+
+		reg_1p8v: 1p8v {
+			compatible = "regulator-fixed";
+			regulator-name = "1P8V";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-always-on;
+		};
+
+		reg_2p5v: 2p5v {
+			compatible = "regulator-fixed";
+			regulator-name = "2P5V";
+			regulator-min-microvolt = <2500000>;
+			regulator-max-microvolt = <2500000>;
+			regulator-always-on;
+		};
+
+		reg_3p3v: 3p3v {
+			compatible = "regulator-fixed";
+			regulator-name = "3P3V";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			regulator-always-on;
+		};
+
+		reg_usb_otg_vbus: usb_otg_vbus {
+			compatible = "regulator-fixed";
+			regulator-name = "usb_otg_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
+			enable-active-high;
+		};
+	};	
+
+    sound {
+		compatible = "fsl,imx6-hawthorne-sgtl5000", 
+                             "fsl,imx-audio-sgtl5000";
+		model = "imx6-hawthorne-sgtl5000";
+		ssi-controller = <&ssi1>;
+		audio-codec = <&codec>;
+		audio-routing =
+			"Headphone Jack", "HP_OUT";
+		mux-int-port = <1>;
+		mux-ext-port = <3>;
+        audio-stdby-gpio = <&gpio5 31 0>;
+        headphone-det-gpio = <&gpio4 11 0>;
+	};
+
+	backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm3 0 5000000>;
+		brightness-levels = <0 4 8 16 32 64 128 255>;
+		default-brightness-level = <7>;
+		status = "okay";
+	};
+
+    dipswitch: dipswitch@0 {
+		compatible = "reach,dipswitch";
+        dip-pin-1 = <&gpio1 20 1>;
+        dip-pin-2 = <&gpio1 17 1>;
+        dip-pin-3 = <&gpio1 19 1>;
+        dip-pin-4 = <&gpio1 21 1>;
+        status = "disabled";
+    };
+
+	v4l2_out {
+		compatible = "fsl,mxc_v4l2_output";
+		status = "okay";
+	};
+
+};
+
+
+&audmux {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_audmux_2>;
+	status = "okay";
+};
+
+
+&fec {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_enet_3>;
+	phy-mode = "rgmii";
+	status = "okay";
+};
+
+&i2c1 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c1_2>;
+	status = "okay";
+
+	temp@1d {
+		compatible = "jc42";
+		reg = <0x1D>;
+		status = "okay";
+	};
+
+	pca953x@3e {
+		compatible = "nxp,pca9534";
+		#gpio-controller;
+		reg = <0x3E>;
+		status = "okay";
+	};
+
+	evervision: touch@38 {
+		compatible = "evervision_ts";
+		reg = <0x38>;
+		interrupt-parent = <&gpio4>;
+       	interrupts = <5 0>;
+		status = "disabled";
+	};
+
+    codec: sgtl5000@0a {
+		compatible = "fsl,sgtl5000";
+		reg = <0x0a>;
+		clocks = <&clks 201>;
+		VDDA-supply = <&reg_3p3v>;
+		VDDIO-supply = <&reg_3p3v>;
+	};
+
+
+};
+
+/*
+For reference here, the PAD_CTL bitfield definition from
+Documentation/devicetree/bindings/pinctrl/fsl,imx6q-pinctrl.txt
+
+CONFIG bits definition:
+PAD_CTL_HYS                     (1 << 16)
+PAD_CTL_PUS_100K_DOWN           (0 << 14)
+PAD_CTL_PUS_47K_UP              (1 << 14)
+PAD_CTL_PUS_100K_UP             (2 << 14)
+PAD_CTL_PUS_22K_UP              (3 << 14)
+PAD_CTL_PUE                     (1 << 13)
+PAD_CTL_PKE                     (1 << 12)
+PAD_CTL_ODE                     (1 << 11)
+PAD_CTL_SPEED_LOW               (1 << 6)
+PAD_CTL_SPEED_MED               (2 << 6)
+PAD_CTL_SPEED_HIGH              (3 << 6)
+PAD_CTL_DSE_DISABLE             (0 << 3)
+PAD_CTL_DSE_240ohm              (1 << 3)
+PAD_CTL_DSE_120ohm              (2 << 3)
+PAD_CTL_DSE_80ohm               (3 << 3)
+PAD_CTL_DSE_60ohm               (4 << 3)
+PAD_CTL_DSE_48ohm               (5 << 3)
+PAD_CTL_DSE_40ohm               (6 << 3)
+PAD_CTL_DSE_34ohm               (7 << 3)
+PAD_CTL_SRE_FAST                (1 << 0)
+PAD_CTL_SRE_SLOW                (0 << 0)
+
+Example, the Control Pad Setting
+
+    0x0f0b0
+
+corresponds to:
+
+   0b1111000010110000
+
+which is:
+
+   PAD_CTL_PUS_22K_UP | PAD_CTL_PUE | PAD_CTL_PKE |
+   PAD_CTL_SPEED_MED | PAD_CTL_DSE_40ohm
+
+For more information about this, refer to the IOMUXC section of the i.MX6
+reference manual.
+
+*/
+
+&iomuxc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_hog_1>;
+
+	imx6sdl-hawthorne {
+		pinctrl_hog_1: hoggrp-1 {
+			fsl,pins = <
+			    MX6QDL_PAD_GPIO_2__GPIO1_IO02       0x80000000	/* uSDHC3 CD */
+				MX6QDL_PAD_GPIO_4__GPIO1_IO04       0x80000000	/* uSDHC2 CD */
+                MX6QDL_PAD_GPIO_0__CCM_CLKO1        0x000b0     /* SGTL5000 */
+			>;
+		};
+
+	};
+	gpio {
+		pinctrl_gpio: gpiogrp {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PCAP Int */
+				MX6QDL_PAD_SD3_RST__GPIO7_IO08    0x80000000 /* PCAP Reset */
+				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
+				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
+                MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ TSC2056 */
+                MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */  
+                /* 4 position dip switch */
+                MX6QDL_PAD_SD1_CLK__GPIO1_IO20    0x80000000    /* SW_OPT1 */ 
+                MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
+                MX6QDL_PAD_SD1_DAT2__GPIO1_IO19   0x80000000    /* SW_OPT3 */ 
+                MX6QDL_PAD_SD1_DAT3__GPIO1_IO21   0x80000000    /* SW_OPT4 */ 
+                MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000    /* Audio Standby */
+                MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
+                MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0 /* LVDS0_EN */
+				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x130B0 /* LCD PWR_EN */
+			>;
+		};
+	};
+
+    ipu {
+        pinctrl_ipu1_4: ipu1grp-4 {
+			fsl,pins = <
+				MX6QDL_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK 0x10
+				MX6QDL_PAD_DI0_PIN15__IPU1_DI0_PIN15       0x10
+				MX6QDL_PAD_DI0_PIN2__IPU1_DI0_PIN02        0x10
+				MX6QDL_PAD_DI0_PIN3__IPU1_DI0_PIN03        0x10
+				//MX6QDL_PAD_DI0_PIN4__IPU1_DI0_PIN04        0x80000000
+				MX6QDL_PAD_DISP0_DAT0__IPU1_DISP0_DATA00   0x10
+				MX6QDL_PAD_DISP0_DAT1__IPU1_DISP0_DATA01   0x10
+				MX6QDL_PAD_DISP0_DAT2__IPU1_DISP0_DATA02   0x10
+				MX6QDL_PAD_DISP0_DAT3__IPU1_DISP0_DATA03   0x10
+				MX6QDL_PAD_DISP0_DAT4__IPU1_DISP0_DATA04   0x10
+				MX6QDL_PAD_DISP0_DAT5__IPU1_DISP0_DATA05   0x10
+				MX6QDL_PAD_DISP0_DAT6__IPU1_DISP0_DATA06   0x10
+				MX6QDL_PAD_DISP0_DAT7__IPU1_DISP0_DATA07   0x10
+				MX6QDL_PAD_DISP0_DAT8__IPU1_DISP0_DATA08   0x10
+				MX6QDL_PAD_DISP0_DAT9__IPU1_DISP0_DATA09   0x10
+				MX6QDL_PAD_DISP0_DAT10__IPU1_DISP0_DATA10  0x10
+				MX6QDL_PAD_DISP0_DAT11__IPU1_DISP0_DATA11  0x10
+				MX6QDL_PAD_DISP0_DAT12__IPU1_DISP0_DATA12  0x10
+				MX6QDL_PAD_DISP0_DAT13__IPU1_DISP0_DATA13  0x10
+				MX6QDL_PAD_DISP0_DAT14__IPU1_DISP0_DATA14  0x10
+				MX6QDL_PAD_DISP0_DAT15__IPU1_DISP0_DATA15  0x10
+				MX6QDL_PAD_DISP0_DAT16__IPU1_DISP0_DATA16  0x10
+				MX6QDL_PAD_DISP0_DAT17__IPU1_DISP0_DATA17  0x10
+			>;
+	    }; 
+    };
+
+    gpmi-nand {
+		pinctrl_gpmi_nand_2: gpmi-nand-2 {
+			fsl,pins = <
+				MX6QDL_PAD_NANDF_CLE__NAND_CLE     0xb0b1
+				MX6QDL_PAD_NANDF_ALE__NAND_ALE     0xb0b1
+				MX6QDL_PAD_NANDF_WP_B__NAND_WP_B   0xb0b1
+				MX6QDL_PAD_NANDF_RB0__NAND_READY_B 0xb000
+				MX6QDL_PAD_NANDF_CS0__NAND_CE0_B   0xb0b1
+				MX6QDL_PAD_NANDF_CS1__NAND_CE1_B   0xb0b1
+				MX6QDL_PAD_SD4_CMD__NAND_RE_B      0xb0b1
+				MX6QDL_PAD_SD4_CLK__NAND_WE_B      0xb0b1
+				MX6QDL_PAD_NANDF_D0__NAND_DATA00   0xb0b1
+				MX6QDL_PAD_NANDF_D1__NAND_DATA01   0xb0b1
+				MX6QDL_PAD_NANDF_D2__NAND_DATA02   0xb0b1
+				MX6QDL_PAD_NANDF_D3__NAND_DATA03   0xb0b1
+				MX6QDL_PAD_NANDF_D4__NAND_DATA04   0xb0b1
+				MX6QDL_PAD_NANDF_D5__NAND_DATA05   0xb0b1
+				MX6QDL_PAD_NANDF_D6__NAND_DATA06   0xb0b1
+				MX6QDL_PAD_NANDF_D7__NAND_DATA07   0xb0b1
+			>;
+		};
+	};
+
+	ecspi1 {
+		pinctrl_ecspi1_cs_1: ecspi1_cs_grp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D24__GPIO3_IO24 0x80000000
+				MX6QDL_PAD_EIM_D25__GPIO3_IO25 0x80000000
+			>;
+		};
+	};
+
+	uart2 {
+		pinctrl_uart2_3: uart2grp-3 {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_DAT4__UART2_RX_DATA   0x1b0b1
+				MX6QDL_PAD_SD4_DAT7__UART2_TX_DATA   0x1b0b1
+			>;
+		};
+	};
+
+	uart5 {
+		pinctrl_uart5_1: uart5grp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_CSI0_DAT15__UART5_RX_DATA 0x1b0b1
+				MX6QDL_PAD_CSI0_DAT14__UART5_TX_DATA 0x1b0b1
+			>;
+		};
+	};
+
+	flexcan1 {
+		pinctrl_flexcan1_3: flexcan1grp-3 {
+			fsl,pins = <
+				MX6QDL_PAD_GPIO_8__FLEXCAN1_RX 0x80000000
+				MX6QDL_PAD_GPIO_7__FLEXCAN1_TX 0x80000000
+			>;
+		};
+	};
+
+
+	usbotg {
+		pinctrl_usbotg_3: usbotggrp-3 {
+			fsl,pins = <
+                MX6QDL_PAD_GPIO_1__GPIO1_IO01 0x80000000
+			>;
+		};
+	};
+
+
+};
+
+&audmux {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_audmux_2>;
+	status = "okay";
+};
+
+&pwm3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm3_1>;
+	status = "okay";
+};
+
+&ssi1 {
+	fsl,mode = "i2s-slave";
+	status = "okay";
+};
+
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart1_1>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2_3>;
+	status = "okay";
+};
+
+&uart5 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart5_1>;
+	status = "okay";
+};
+
+&usbh1 {
+	status = "okay";
+	en_gpio = <&gpio3 31 1>;
+};
+
+&usbotg {
+	vbus-supply = <&reg_usb_otg_vbus>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usbotg_1>;
+	disable-over-current;
+	en_gpio = <&gpio4 15 1>;
+	status = "okay";
+};
+
+&usdhc3 { /* Push-pull microSD slot */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc3_2>;
+	vmmc-supply = <&reg_3p3v>;
+    cd-gpios = <&gpio1 2 0>;
+	status = "okay";
+};
+
+&usdhc2 { /* Captive microSD slot */
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2_2>;
+	vmmc-supply = <&reg_3p3v>;
+   	cd-gpios = <&gpio1 4 0>;
+	status = "disabled";
+};
+
+&ecspi1 {
+	fsl,spi-num-chipselects = <4>;
+	cs-gpios = <0>, <0>, <&gpio3 24 0>, <&gpio3 25 0> ;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_ecspi1_1 &pinctrl_ecspi1_cs_1>;
+	status = "okay";
+
+	spiflash: nor@2 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "n25q128a13";
+		spi-max-frequency = <20000000>;
+		reg = <2>;
+        status = "disabled";
+
+		mtd0@00000000 {
+			label = "boot";
+			reg = <0x00000000 0x00080000>;
+		};
+
+		mtd1@00080000 {
+			label = "bootenv";
+			reg = <0x00080000 0x00020000>;
+		};
+
+		mtd2@000A0000 {
+			label = "genenv";
+			reg = <0x000A0000 0x00040000>;
+		};
+
+		mtd3@000E0000 {
+			label = "kernel";
+			reg = <0x000E0000 0x00F20000>;
+		};
+	};
+
+    tsc2046: touch@3 {
+        compatible = "ti,tsc2046";
+        reg = <3>;
+        spi-max-frequency = <1000000>;
+        interrupt-parent = <&gpio7>;
+        interrupts = <13 0>;
+        pendown-gpio = <&gpio7 13 0>;
+        vcc-supply = <&reg_3p3v>;
+
+        //ti,x-min = /bits/ 16 <150>;
+        //ti,x-max = /bits/ 16 <3830>;
+        //ti,y-min = /bits/ 16 <190>;
+        //ti,y-max = /bits/ 16 <3830>;
+        ti,vref-delay-usecs = /bits/ 16 <450>;
+        ti,x-plate-ohms = /bits/ 16 <450>;
+        ti,y-plate-ohms = /bits/ 16 <250>;
+        ti,pressure-max = /bits/ 16 <255>;
+
+        ti,debounce-rep = /bits/ 16 <4>;
+        ti,debounce-tol = /bits/ 16 <5>;
+        ti,debounce-max = /bits/ 16 <10>;
+
+        linux,wakeup;
+	    status = "disabled";
+    };
+};
+
+&gpmi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_gpmi_nand_2>;
+	status = "ok";
+	
+	partition@0 {
+		label = "rootfs";
+		reg = <0x0000000 0x18000000>;
+	};
+	partition@1 {
+		label = "appfs";
+		reg = <0x18000000 0x8000000>;
+	};
+};
+
+&flexcan1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan1_3>;
+	status = "disabled";
+};
