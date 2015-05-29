@@ -188,6 +188,12 @@ config TIFM_7XX1
 	  To compile this driver as a module, choose M here: the module will
 	  be called tifm_7xx1.
 
+config G2H_DIP
+    tristate "G2H 4 position DIP switch"
+    depends on GPIO_MXC
+    help
+        This is the 4 positon DIP switch on G2H
+
 config ICS932S401
 	tristate "Integrated Circuits ICS932S401"
 	depends on I2C
