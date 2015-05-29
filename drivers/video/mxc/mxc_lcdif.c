@@ -16,7 +16,9 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/mxcfb.h>
+#include <linux/delay.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/platform_device.h>
 
@@ -26,6 +28,8 @@ struct mxc_lcd_platform_data {
 	u32 default_ifmt;
 	u32 ipu_id;
 	u32 disp_id;
+	u32 lcd_enable_gpio;
+	u32 backlight_enable_gpio;
 };
 
 struct mxc_lcdif_data {
@@ -37,173 +41,28 @@ struct mxc_lcdif_data {
 
 static struct fb_videomode lcdif_modedb[] = {
 	{
-	/* 800x480 @ 57 Hz , pixel clk @ 27MHz */
-	"CLAA-WVGA", 57, 800, 480, 37037, 40, 60, 10, 10, 20, 10,
-	FB_SYNC_CLK_LAT_FALL,
-	FB_VMODE_NONINTERLACED,
-	0,},
-	{
-	/* 800x480 @ 60 Hz , pixel clk @ 32MHz */
-	"SEIKO-WVGA", 60, 800, 480, 29850, 89, 164, 23, 10, 10, 10,
-	FB_SYNC_CLK_LAT_FALL,
-	FB_VMODE_NONINTERLACED,
-	0,},
-	{
-	/* sharp wvga 800x480 */
-	"sharp-wvga", 60, 800, 480, 1000000000/928 * 1000 /525/60,
-	.left_margin = 40, .right_margin = 40,
-	.upper_margin = 31, .lower_margin = 11,
-	.hsync_len = 48, .vsync_len = 3,
-	.sync = FB_SYNC_CLK_LAT_FALL,
-	.vmode = FB_VMODE_NONINTERLACED,
-	.flag = 0,},
-	{
-	 /* Okaya 480x272 */
-	 "okaya_480x272", 60, 480, 272, 97786,
-	 .left_margin = 2, .right_margin = 1,
-	 .upper_margin = 3, .lower_margin = 2,
-	 .hsync_len = 41, .vsync_len = 10,
-	 .sync = FB_SYNC_CLK_LAT_FALL,
-	 .vmode = FB_VMODE_NONINTERLACED,
-	 .flag = 0,},
-	{
-		/* 1280x120 @ 60 Hz , pixel clk @ 32MHz */
-		"TRULY-1U",
-		60, /* refresh rate in Hz */
-		1280, /* xres in pixels */
-		120, /* yres in pixels */
-		45000, /* pixel clock in picoseconds (dot clock or just clock) */
-		54, /* left_margin (Horizontal Back Porch) in pixel clock units */
-		54, /* right_margin (Horizontal Front Porch) in pixel clock units */
-		3, /* upper_margin (Vertical Back Porch) in pixel clock units */
-		3, /* lower_margin (Vertical Front Porch) in pixel clock units */
-		3, /* hsync_len (Hsync pulse width) */
-		3, /* vsync_len (Vsync pulse width) */
-		0, /* sync (Polarity on the Data Enable) */
-		FB_VMODE_NONINTERLACED, /* vmode (Video Mode) */
-		0, /* flags */
-	},
-	{
-	/* 800x600 @ 60 Hz , pixel clk @ 40MHz */
-	"LSA40AT9001", 60, 800, 600, 1000000000 / (800+10+46+210) * 1000 / (600+1+23+12) / 60,
-	.left_margin = 46, .right_margin = 210,
-	.upper_margin = 23, .lower_margin = 12,
-	.hsync_len = 10, .vsync_len = 1,
-	.sync = FB_SYNC_CLK_LAT_FALL,
-	.vmode = FB_VMODE_NONINTERLACED,
-	.flag = 0,},
-	{
-	/* 480x800 @ 57 Hz , pixel clk @ 27MHz */
-	"LB043", 57, 480, 800, 25000,
-	.left_margin = 40, .right_margin = 60,
-	.upper_margin = 10, .lower_margin = 10,
-	.hsync_len = 20, .vsync_len = 10,
-	.sync = FB_SYNC_CLK_LAT_FALL,
-	.vmode = FB_VMODE_NONINTERLACED,
-	.flag = 0,},
-	{
-	/* 480x800 @ 60 Hz , pixel clk @ 27MHz */
-	"AUO_G050", 60, 480, 800, 1000000000/516 * 1000 /836/60,
-	.left_margin = 18, .right_margin = 16,
-	.upper_margin = 18, .lower_margin = 16,
-	.hsync_len = 2, .vsync_len = 2,
-	.sync = 0,
-	.vmode = FB_VMODE_NONINTERLACED,
-	.flag = 0,},
-	{
-	 /*
-	  * hitachi 640x240
-	  * vsync = 60
-	  * hsync = 260 * vsync = 15.6 Khz
-	  * pixclk = 800 * hsync = 12.48 MHz
-	  */
-	 "hitachi_hvga", 60, 640, 240, 1000000000 / (640+34+1+125) * 1000 / (240+8+3+9) / 60,	//80128, (12.48 MHz)
-	 .left_margin = 34, .right_margin = 1,
-	 .upper_margin = 8, .lower_margin = 3,
-	 .hsync_len = 125, .vsync_len = 9,
-	 .sync = FB_SYNC_CLK_LAT_FALL,
-	 .vmode = FB_VMODE_NONINTERLACED,
-	 .flag = 0,},
-	/*
-	 * BT656/BT1120 mode
-	 *
-	 * left_margin: used for field0 vStart width in lines
-	 *
-	 * right_margin: used for field0 vEnd width in lines
-	 *
-	 * up_margin: used for field1 vStart width in lines
-	 *
-	 * down_margin: used for field1 vEnd width in lines
-	 *
-	 * hsync_len: EAV Code + Blanking Video + SAV Code (in pixel clock count)
-	 *		   For BT656 NTSC, it is 4 + 67*4 + 4 = 276.
-	 *		   For BT1120 NTSC, it is 4 + 67*2 + 4 = 142.
-	 *		   For BT656 PAL, it is 4 + 70*4 + 4 = 288.
-	 *		   For BT1120 PAL, it is 4 + 70*2 + 4 = 148.
-	 *
-	 * vsync_len: not used, set to 1
-	 */
-	{
-	 /* NTSC Interlaced output */
-	 "BT656-NTSC", 60, 720, 480, 37037,
-	 19, 3,
-	 20, 3,
-	 276, 1,
-	 FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	 FB_VMODE_INTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 /* PAL Interlaced output */
-	 "BT656-PAL", 50, 720, 576, 37037,
-	 22, 2,
-	 23, 2,
-	 288, 1,
-	 FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	 FB_VMODE_INTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 /* NTSC Interlaced output */
-	 "BT1120-NTSC", 30, 720, 480, 74074,
-	 19, 3,
-	 20, 3,
-	 142, 1,
-	 FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	 FB_VMODE_INTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 /* PAL Interlaced output */
-	 "BT1120-PAL", 25, 720, 576, 74074,
-	 22, 2,
-	 23, 2,
-	 148, 1,
-	 FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	 FB_VMODE_INTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 /* 1080I60 Interlaced output */
-	  "BT1120-1080I60", 60, 1920, 1080, 13468,
-	  20, 3,
-	  20, 2,
-	  280, 1,
-	  FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	  FB_VMODE_INTERLACED,
-	  FB_MODE_IS_DETAILED,},
-	{
-	  /* 1080I50 Interlaced output */
-	  "BT1120-1080I50", 50, 1920, 1080, 13468,
-	  20, 3,
-	  20, 2,
-	  720, 1,
-	  FB_SYNC_HOR_HIGH_ACT | FB_SYNC_VERT_HIGH_ACT,
-	  FB_VMODE_INTERLACED,
-	  FB_MODE_IS_DETAILED,},
+          .name                   = "CLAA-WVGA",
+          .refresh                = 60,
+          .xres                   = 800,
+          .yres                   = 480,
+          .pixclock               = KHZ2PICOS(28000),
+          .left_margin			  = 100,
+          .right_margin			  = 100,
+          .hsync_len              = 56,
+          .upper_margin			  = 15,
+          .lower_margin			  = 5,
+          .vsync_len              = 10,
+          .sync                   = FB_SYNC_CLK_LAT_FALL,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },
 };
 static int lcdif_modedb_sz = ARRAY_SIZE(lcdif_modedb);
 
 static int lcdif_init(struct mxc_dispdrv_handle *disp,
 	struct mxc_dispdrv_setting *setting)
 {
-	int ret, i;
+	int ret, i, gpio;
 	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
 	struct mxc_lcd_platform_data *plat_data
 			= lcdif->pdev->dev.platform_data;
@@ -227,18 +86,91 @@ static int lcdif_init(struct mxc_dispdrv_handle *disp,
 				&setting->fbi->modelist);
 	}
 
+	/* setup lcd and backlight gpio */
+	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
+        gpio = gpio_request_one(plat_data->lcd_enable_gpio,
+			GPIOF_OUT_INIT_LOW  , "lcd-enable-gpio");
+		pr_debug("%s: disable lcd [%d] err [%d]\n", __func__,
+			plat_data->lcd_enable_gpio, gpio);
+		gpio_set_value(plat_data->lcd_enable_gpio, 0);
+	}
+
+	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+        gpio = gpio_request_one(plat_data->backlight_enable_gpio,
+			GPIOF_OUT_INIT_LOW  , "backlight-enable-gpio");
+		pr_debug("%s: disable backlight [%d] err [%d]\n", __func__,
+			plat_data->backlight_enable_gpio, gpio);
+		gpio_set_value(plat_data->backlight_enable_gpio, 0);
+	}
+
 	return ret;
 }
 
 void lcdif_deinit(struct mxc_dispdrv_handle *disp)
 {
-	/*TODO*/
+	pr_debug("%s: \n", __func__);
+}
+
+int lcdif_setup (struct mxc_dispdrv_handle *disp,
+	struct fb_info *fbinfo)
+{
+	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
+	struct mxc_lcd_platform_data *plat_data
+			= lcdif->pdev->dev.platform_data;
+
+	mdelay(100);
+	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
+        pr_debug("%s: enable lcd gpio \n", __func__);
+        gpio_set_value(plat_data->lcd_enable_gpio, 1);
+	}
+
+	return 0;
+}
+
+/* display driver enable function for extension */
+int lcdif_enable (struct mxc_dispdrv_handle *disp,
+	struct fb_info *fbinfo)
+{
+	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
+	struct mxc_lcd_platform_data *plat_data
+			= lcdif->pdev->dev.platform_data;
+
+	mdelay(150);
+	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+        pr_debug("%s: enable backlight gpio \n", __func__);
+        gpio_set_value(plat_data->backlight_enable_gpio, 1);
+	}
+
+	return 0;
+}
+
+/* display driver disable function, called at early part of fb_blank */
+void lcdif_disable (struct mxc_dispdrv_handle *disp,
+ struct fb_info *fbinfo)
+{
+	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
+	struct mxc_lcd_platform_data *plat_data
+			= lcdif->pdev->dev.platform_data;
+
+	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+        pr_debug("%s: disable backlight gpio \n", __func__);
+        gpio_set_value(plat_data->backlight_enable_gpio, 0);
+	}
+
+	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
+        pr_debug("%s: disable lcd gpio \n", __func__);
+        gpio_set_value(plat_data->lcd_enable_gpio, 0);
+	}
+	mdelay(100);
 }
 
 static struct mxc_dispdrv_driver lcdif_drv = {
 	.name 	= DISPDRV_LCD,
 	.init 	= lcdif_init,
 	.deinit	= lcdif_deinit,
+	.enable = lcdif_enable,
+	.disable = lcdif_disable,
+	.setup  = lcdif_setup,
 };
 
 static int lcd_get_of_property(struct platform_device *pdev,
@@ -246,7 +178,7 @@ static int lcd_get_of_property(struct platform_device *pdev,
 {
 	struct device_node *np = pdev->dev.of_node;
 	int err;
-	u32 ipu_id, disp_id;
+	u32 ipu_id, disp_id,lcd_enable, backlight_enable;
 	const char *default_ifmt;
 
 	err = of_property_read_string(np, "default_ifmt", &default_ifmt);
@@ -264,6 +196,25 @@ static int lcd_get_of_property(struct platform_device *pdev,
 		dev_dbg(&pdev->dev, "get of property disp_id fail\n");
 		return err;
 	}
+
+	lcd_enable = of_get_named_gpio(np, "lcd-enable-gpio", 0);
+	if (!gpio_is_valid(lcd_enable)) {
+		dev_dbg(&pdev->dev, "get of property lcd-enable-gpio fail\n");
+		return -ENODEV;
+	} else {
+		plat_data->lcd_enable_gpio = lcd_enable;
+	}
+
+	backlight_enable = of_get_named_gpio(np, "backlight-enable-gpio", 0);
+	if (!gpio_is_valid(backlight_enable)) {
+		dev_dbg(&pdev->dev, "get of property backlight-enable-gpio fail\n");
+		return -ENODEV;
+	} else {
+		plat_data->backlight_enable_gpio = backlight_enable;
+	}
+
+	pr_debug("%s: lcd gpio [%d]\n", __func__, plat_data->lcd_enable_gpio);
+	pr_debug("%s: backlight gpio [%d]\n", __func__, plat_data->backlight_enable_gpio);
 
 	plat_data->ipu_id = ipu_id;
 	plat_data->disp_id = disp_id;
