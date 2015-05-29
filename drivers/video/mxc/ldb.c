@@ -28,10 +28,12 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/fb.h>
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/console.h>
 #include <linux/io.h>
+#include <linux/of_gpio.h>
 #include <linux/ipu.h>
 #include <linux/mxcfb.h>
 #include <linux/regulator/consumer.h>
@@ -107,6 +109,12 @@ struct fsl_mxc_ldb_platform_data {
 	/*only work for separate mode*/
 	int sec_ipu_id;
 	int sec_disp_id;
+	
+	int lvds_en_gpio;
+	int disp_en_gpio;
+#define LDB_CHANNEL_MAPPING_JEIDA 1
+#define LDB_CHANNEL_MAPPING_SPWG  2
+    int channel_mapping;
 };
 
 struct ldb_data {
@@ -139,29 +147,51 @@ static int g_ldb_mode;
 
 static struct fb_videomode ldb_modedb[] = {
 	{
-	 "LDB-WXGA", 60, 1280, 800, 14065,
-	 40, 40,
-	 10, 3,
-	 80, 10,
-	 0,
-	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 "LDB-XGA", 60, 1024, 768, 15385,
-	 220, 40,
-	 21, 7,
-	 60, 10,
-	 0,
-	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
-	{
-	 "LDB-1080P60", 60, 1920, 1080, 7692,
-	 100, 40,
-	 30, 3,
-	 10, 2,
-	 0,
-	 FB_VMODE_NONINTERLACED,
-	 FB_MODE_IS_DETAILED,},
+          .name                   = "LDB-VGA", 
+          .refresh                = 60, 
+          .xres                   = 640, 
+          .yres                   = 480, 
+          .pixclock               = 39683,
+          .left_margin			  = 48, 
+          .right_margin			  = 16,
+          .upper_margin			  = 31, 
+          .lower_margin			  = 11,
+          .hsync_len              = 96, 
+          .vsync_len              = 2,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },{
+          .name                   = "LDB-XGA", 
+          .refresh                = 60, 
+          .xres                   = 1024, 
+          .yres                   = 768, 
+          .pixclock               = 15384,
+          .left_margin			  = 220, 
+          .right_margin			  = 40,
+          .upper_margin			  = 21, 
+          .lower_margin			  = 7,
+          .hsync_len              = 60, 
+          .vsync_len              = 10,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },{
+          .name                   = "LDB-WXGA",
+          .refresh                = 60,
+          .xres                   = 1280,
+          .yres                   = 800,
+          .pixclock               = 15384,
+          .left_margin			  = 220,
+          .right_margin			  = 40,
+          .upper_margin			  = 21,
+          .lower_margin			  = 7,
+          .hsync_len              = 60,
+          .vsync_len              = 10,
+          .sync                   = 0,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },
 };
 static int ldb_modedb_sz = ARRAY_SIZE(ldb_modedb);
 
@@ -195,6 +225,24 @@ static int valid_mode(int pixel_fmt)
 		(pixel_fmt == IPU_PIX_FMT_LVDS666) ||
 		(pixel_fmt == IPU_PIX_FMT_RGB666) ||
 		(pixel_fmt == IPU_PIX_FMT_BGR666));
+}
+
+static int parse_ldb_channel_mapping_mode(char *mode)
+{
+	int channel_mapping;
+
+	if (!strcmp(mode, "JEIDA")) {
+        pr_debug("channel mapping JEIDA\n");
+		channel_mapping = LDB_CHANNEL_MAPPING_JEIDA;
+    } else if (!strcmp(mode, "SPWG")) {
+        pr_debug("channel mapping SPWG\n");
+		channel_mapping = LDB_CHANNEL_MAPPING_SPWG;
+    } else {
+        pr_warn("channel mapping undefined\n");
+		channel_mapping = -EINVAL;
+    }
+
+	return channel_mapping;
 }
 
 static int parse_ldb_mode(char *mode)
@@ -253,15 +301,23 @@ static int ldb_get_of_property(struct platform_device *pdev,
 				struct fsl_mxc_ldb_platform_data *plat_data)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device *dev = &pdev->dev;
 	int err;
 	u32 ipu_id, disp_id;
 	u32 sec_ipu_id, sec_disp_id;
+	u32 disp_en_gpio, lvds_en_gpio;
 	char *mode;
+	char *mapping;
 	u32 ext_ref;
 
 	err = of_property_read_string(np, "mode", (const char **)&mode);
 	if (err) {
 		dev_dbg(&pdev->dev, "get of property mode fail\n");
+		return err;
+	}
+	err = of_property_read_string(np, "channel_mapping", (const char **)&mapping);
+	if (err) {
+		dev_dbg(&pdev->dev, "get of property channel mapping fail\n");
 		return err;
 	}
 	err = of_property_read_u32(np, "ext_ref", &ext_ref);
@@ -289,13 +345,38 @@ static int ldb_get_of_property(struct platform_device *pdev,
 		dev_dbg(&pdev->dev, "get of property sec_disp_id fail\n");
 		return err;
 	}
-
+	disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
+	if (!gpio_is_valid(disp_en_gpio)) {
+		dev_dbg(&pdev->dev, "get of property disp_en_gpio fail\n");
+		return -ENODEV;
+	} 
+	err = devm_gpio_request_one(dev, disp_en_gpio, GPIOF_OUT_INIT_HIGH,
+                    "disp_en_gpio");
+	if (err < 0) {
+	    dev_dbg(&pdev->dev, "request disp enable gpio fail \n");
+		return err;
+	}
+	lvds_en_gpio = of_get_named_gpio(np, "lvds_en_gpio", 0);
+	if (!gpio_is_valid(lvds_en_gpio)) {
+		dev_dbg(&pdev->dev, "get of property lvds_en_gpio fail\n");
+		return -ENODEV;
+	}
+	err = devm_gpio_request_one(dev, lvds_en_gpio, GPIOF_OUT_INIT_HIGH,
+					"lvds_en_gpio");
+	if (err < 0) {
+	    dev_dbg(&pdev->dev, "request lvds enable gpio fail \n");
+		return err;
+	} 
+	
+	plat_data->channel_mapping = parse_ldb_channel_mapping_mode(mapping);
 	plat_data->mode = parse_ldb_mode(mode);
 	plat_data->ext_ref = ext_ref;
 	plat_data->ipu_id = ipu_id;
 	plat_data->disp_id = disp_id;
 	plat_data->sec_ipu_id = sec_ipu_id;
 	plat_data->sec_disp_id = sec_disp_id;
+	plat_data->lvds_en_gpio = lvds_en_gpio;
+	plat_data->disp_en_gpio = disp_en_gpio;
 
 	return err;
 }
@@ -608,6 +689,19 @@ static int ldb_disp_init(struct mxc_dispdrv_handle *disp,
 		ch_mask = lvds_channel ? LDB_CH1_MODE_MASK :
 				LDB_CH0_MODE_MASK;
 	}
+	
+	/* select channel mapping based on platform data */
+	switch (plat_data->channel_mapping) {
+		case LDB_CHANNEL_MAPPING_JEIDA:
+			reg_set |= LDB_BIT_MAP_CH0_JEIDA | LDB_BIT_MAP_CH1_JEIDA;
+			break;
+		case LDB_CHANNEL_MAPPING_SPWG:
+			reg_set |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
+			break;
+		default:
+			reg_set |= LDB_BIT_MAP_CH0_SPWG | LDB_BIT_MAP_CH1_SPWG;
+			break;
+	}
 	reg = readl(ldb->control_reg);
 	reg &= ~reg_clear;
 	reg |= reg_set;
@@ -767,12 +861,46 @@ static void ldb_disp_deinit(struct mxc_dispdrv_handle *disp)
 	fb_unregister_client(&ldb->nb);
 }
 
+static int ldb_disp_enable(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
+{
+    struct ldb_data *ldb = mxc_dispdrv_getdata(disp);
+	int index;
+	uint32_t reg;
+
+	index = find_ldb_setting(ldb, fbi);
+	if (index < 0)
+		return index;
+
+    reg = readl(ldb->control_reg);
+    reg |= ldb->setting[index].ch_val;
+    writel(reg, ldb->control_reg);
+    
+    return 0;
+}
+
+static void ldb_disp_disable(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
+{
+	struct ldb_data *ldb = mxc_dispdrv_getdata(disp);
+	int index;
+	uint32_t reg;
+
+	index = find_ldb_setting(ldb, fbi);
+	if (index < 0)
+		return;
+
+	reg = readl(ldb->control_reg);
+	reg &= ~ldb->setting[index].ch_mask;
+	writel(reg, ldb->control_reg);
+}
+
 static struct mxc_dispdrv_driver ldb_drv = {
 	.name 	= DISPDRV_LDB,
 	.init 	= ldb_disp_init,
 	.post_init = ldb_post_disp_init,
 	.deinit	= ldb_disp_deinit,
 	.setup = ldb_disp_setup,
+	.enable     = ldb_disp_enable,
+	.disable    = ldb_disp_disable,
 };
 
 static int ldb_suspend(struct platform_device *pdev, pm_message_t state)
