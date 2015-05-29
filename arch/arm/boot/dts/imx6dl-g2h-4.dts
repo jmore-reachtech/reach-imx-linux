@@ -44,7 +44,7 @@
 		disp_id = <0>;
 		default_ifmt = "RGB666";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ipu1_4>;
+		pinctrl-0 = <&pinctrl_ipu1_5>;
 		lcd-enable-gpio = <&gpio2 11 0>;
 		backlight-enable-gpio = <&gpio2 8 0>;
 		status = "okay";

@@ -228,7 +228,7 @@ reference manual.
 	};
 
     ipu {
-        pinctrl_ipu1_4: ipu1grp-4 {
+        pinctrl_ipu1_5: ipu1grp-5 {
 			fsl,pins = <
 				MX6QDL_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK 0x10
 				MX6QDL_PAD_DI0_PIN15__IPU1_DI0_PIN15       0x10
