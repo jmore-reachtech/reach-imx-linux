@@ -118,6 +118,31 @@ static int __init imx6q_flexcan_fixup_auto(void)
 /*
  * We need to setup the GPIO here
  */
+static int __init imx6q_cts_fixup(void)
+{
+	struct device_node *np;
+    int cts;
+
+    /* grab uart5*/
+	np = of_find_node_by_path("/soc/aips-bus@02100000/serial@021f4000");
+    if (!np) {
+        pr_err("uart5 of node not found! \n");
+        return -ENODEV;
+    }
+
+    cts = of_get_named_gpio(np,"cts-gpio", 0);
+	if (gpio_is_valid(cts)) {
+        printk("%s: enable cts gpio %d \n", __func__, cts);
+		gpio_request_one(cts, GPIOF_DIR_OUT, "uart5-cts");
+        gpio_set_value(cts, 0);
+    }
+
+    return 0;
+}
+
+/*
+ * We need to setup the GPIO here
+ */
 static int __init imx6q_dip_fixup(void)
 {
 	struct device_node *np;
@@ -585,6 +610,7 @@ static void __init imx6q_init_late(void)
 		imx6q_usb_fixup();
 		imx6q_dip_fixup();
 		imx6q_audio_fixup();
+		imx6q_cts_fixup();
 	}
 }
 

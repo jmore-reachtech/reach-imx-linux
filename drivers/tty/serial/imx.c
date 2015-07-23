@@ -46,7 +46,9 @@
 #include <linux/rational.h>
 #include <linux/slab.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <linux/of_device.h>
+#include <linux/gpio.h>
 #include <linux/io.h>
 #include <linux/dma-mapping.h>
 
@@ -204,10 +206,10 @@ struct imx_port {
 	struct uart_port	port;
 	struct timer_list	timer;
 	unsigned int		old_status;
-	int			txirq, rxirq, rtsirq;
+	int			        txirq, rxirq, rtsirq;
+    int                 cts_gpio;
 	unsigned int		have_rtscts:1;
 	unsigned int		dte_mode:1;
-	unsigned int		use_irda:1;
 	unsigned int		irda_inv_rx:1;
 	unsigned int		irda_inv_tx:1;
 	unsigned short		trcv_delay; /* transceiver delay */
@@ -233,12 +235,6 @@ struct imx_port_ucrs {
 	unsigned int	ucr2;
 	unsigned int	ucr3;
 };
-
-#ifdef CONFIG_IRDA
-#define USE_IRDA(sport)	((sport)->use_irda)
-#else
-#define USE_IRDA(sport)	(0)
-#endif
 
 static struct imx_uart_data imx_uart_devdata[] = {
 	[IMX1_UART] = {
@@ -371,60 +367,24 @@ static void imx_timeout(unsigned long data)
  */
 static void imx_stop_tx(struct uart_port *port)
 {
-	struct imx_port *sport = (struct imx_port *)port;
-	unsigned long temp;
+    struct imx_port *sport = (struct imx_port *)port;
+	unsigned long ucr1, ucr2, ucr4;
 
-	if (USE_IRDA(sport)) {
-		/* half duplex - wait for end of transmission */
-		int n = 256;
-		while ((--n > 0) &&
-		      !(readl(sport->port.membase + USR2) & USR2_TXDC)) {
-			udelay(5);
-			barrier();
+	ucr1 = readl(port->membase + UCR1);
+	ucr4 = readl(port->membase + UCR4);
+	ucr1 &= ~(UCR1_TXMPTYEN | UCR1_TDMAEN);
+
+	/* in rs485 mode enable TCEN if shifter is not empty */
+	if (port->rs485.flags & SER_RS485_ENABLED) {
+		if (!(readl(port->membase + USR2) & USR2_TXDC)) {
+			writel(ucr1, port->membase + UCR1);
+			writel(ucr4 | UCR4_TCEN, port->membase + UCR4);
+			return;
 		}
-		/*
-		 * irda transceiver - wait a bit more to avoid
-		 * cutoff, hardware dependent
-		 */
-		udelay(sport->trcv_delay);
-
-		/*
-		 * half duplex - reactivate receive mode,
-		 * flush receive pipe echo crap
-		 */
-		if (readl(sport->port.membase + USR2) & USR2_TXDC) {
-			temp = readl(sport->port.membase + UCR1);
-			temp &= ~(UCR1_TXMPTYEN | UCR1_TRDYEN);
-			writel(temp, sport->port.membase + UCR1);
-
-			temp = readl(sport->port.membase + UCR4);
-			temp &= ~(UCR4_TCEN);
-			writel(temp, sport->port.membase + UCR4);
-
-			while (readl(sport->port.membase + URXD0) &
-			       URXD_CHARRDY)
-				barrier();
-
-			temp = readl(sport->port.membase + UCR1);
-			temp |= UCR1_RRDYEN;
-			writel(temp, sport->port.membase + UCR1);
-
-			temp = readl(sport->port.membase + UCR4);
-			temp |= UCR4_DREN;
-			writel(temp, sport->port.membase + UCR4);
-		}
-		return;
 	}
-
-	/*
-	 * We are maybe in the SMP context, so if the DMA TX thread is running
-	 * on other cpu, we have to wait for it to finish.
-	 */
-	if (sport->dma_is_enabled && sport->dma_is_txing)
-		return;
-
-	temp = readl(sport->port.membase + UCR1);
-	writel(temp & ~UCR1_TXMPTYEN, sport->port.membase + UCR1);
+	ucr4 &= ~UCR4_TCEN;
+	writel(ucr1, port->membase + UCR1);
+	writel(ucr4, port->membase + UCR4);
 }
 
 /*
@@ -432,18 +392,29 @@ static void imx_stop_tx(struct uart_port *port)
  */
 static void imx_stop_rx(struct uart_port *port)
 {
-	struct imx_port *sport = (struct imx_port *)port;
-	unsigned long temp;
+	unsigned long ucr1, ucr2, ucr4;
 
-	/*
-	 * We are maybe in the SMP context, so if the DMA TX thread is running
-	 * on other cpu, we have to wait for it to finish.
-	 */
-	if (sport->dma_is_enabled && sport->dma_is_rxing)
-		return;
+	ucr1 = readl(port->membase + UCR1);
+	ucr4 = readl(port->membase + UCR4);
+	ucr1 &= ~(UCR1_TXMPTYEN | UCR1_TDMAEN);
 
-	temp = readl(sport->port.membase + UCR2);
-	writel(temp & ~UCR2_RXEN, sport->port.membase + UCR2);
+	/* in rs485 mode disable transmitter if shifter is empty */
+	if (port->rs485.flags & SER_RS485_ENABLED) {
+		if (!(readl(port->membase + USR2) & USR2_TXDC)) {
+			writel(ucr1, port->membase + UCR1);
+			writel(ucr4 | UCR4_TCEN, port->membase + UCR4);
+			return;
+		}
+		ucr2 = readl(port->membase + UCR2);
+		if (port->rs485.flags & SER_RS485_RTS_AFTER_SEND)
+			ucr2 &= ~UCR2_CTS;
+		else
+			ucr2 |= UCR2_CTS;
+		writel(ucr2, port->membase + UCR2);
+	}
+	ucr4 &= ~UCR4_TCEN;
+	writel(ucr1, port->membase + UCR1);
+	writel(ucr4, port->membase + UCR4);
 }
 
 /*
@@ -473,7 +444,7 @@ static inline void imx_transmit_buffer(struct imx_port *sport)
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(&sport->port);
 
-	if (uart_circ_empty(xmit))
+	if (uart_circ_empty(xmit)) 
 		imx_stop_tx(&sport->port);
 }
 
@@ -564,16 +535,6 @@ static void imx_start_tx(struct uart_port *port)
 	struct imx_port *sport = (struct imx_port *)port;
 	unsigned long temp;
 
-	if (USE_IRDA(sport)) {
-		/* half duplex in IrDA mode; have to disable receive mode */
-		temp = readl(sport->port.membase + UCR4);
-		temp &= ~(UCR4_DREN);
-		writel(temp, sport->port.membase + UCR4);
-
-		temp = readl(sport->port.membase + UCR1);
-		temp &= ~(UCR1_RRDYEN);
-		writel(temp, sport->port.membase + UCR1);
-	}
 	/* Clear any pending ORE flag before enabling interrupt */
 	temp = readl(sport->port.membase + USR2);
 	writel(temp | USR2_ORE, sport->port.membase + USR2);
@@ -581,20 +542,16 @@ static void imx_start_tx(struct uart_port *port)
 	temp = readl(sport->port.membase + UCR4);
 	temp |= UCR4_OREN;
 	writel(temp, sport->port.membase + UCR4);
+    
+    /* set CTS */
+    if (port->rs485.flags & SER_RS485_ENABLED) {
+		/* enable transmitter and shifter empty irq */
+        gpio_set_value(sport->cts_gpio, 1);
+	}
 
 	if (!sport->dma_is_enabled) {
 		temp = readl(sport->port.membase + UCR1);
 		writel(temp | UCR1_TXMPTYEN, sport->port.membase + UCR1);
-	}
-
-	if (USE_IRDA(sport)) {
-		temp = readl(sport->port.membase + UCR1);
-		temp |= UCR1_TRDYEN;
-		writel(temp, sport->port.membase + UCR1);
-
-		temp = readl(sport->port.membase + UCR4);
-		temp |= UCR4_TCEN;
-		writel(temp, sport->port.membase + UCR4);
 	}
 
 	if (sport->dma_is_enabled) {
@@ -755,8 +712,8 @@ static irqreturn_t imx_int(int irq, void *dev_id)
 			imx_rxint(irq, dev_id);
 	}
 
-	if (sts & USR1_TRDY &&
-			readl(sport->port.membase + UCR1) & UCR1_TXMPTYEN)
+    if (sts & USR1_TRDY &&
+        readl(sport->port.membase + UCR1) & UCR1_TXMPTYEN)
 		imx_txint(irq, dev_id);
 
 	if (sts & USR1_RTSD)
@@ -770,6 +727,15 @@ static irqreturn_t imx_int(int irq, void *dev_id)
 		dev_err(sport->port.dev, "Rx FIFO overrun\n");
 		sport->port.icount.overrun++;
 		writel(sts2 | USR2_ORE, sport->port.membase + USR2);
+	} 
+    
+    /* if transmit complete clear CTS and disable TCEN */
+    if ((sport->port.rs485.flags & SER_RS485_ENABLED) 
+        && (sts2 & USR2_TXDC)) {
+        gpio_set_value(sport->cts_gpio, 0);
+	    sts2 = readl(sport->port.membase + UCR4);
+        sts2 &= ~UCR4_TCEN;
+    	writel(sts2, sport->port.membase + UCR4);
 	}
 
 	return IRQ_HANDLED;
@@ -817,13 +783,13 @@ static void imx_set_mctrl(struct uart_port *port, unsigned int mctrl)
 	struct imx_port *sport = (struct imx_port *)port;
 	unsigned long temp;
 
-	temp = readl(sport->port.membase + UCR2) & ~UCR2_CTS;
-
-	if (mctrl & TIOCM_RTS)
-		if (!sport->dma_is_enabled)
-			temp |= UCR2_CTS;
-
-	writel(temp, sport->port.membase + UCR2);
+	if (!(port->rs485.flags & SER_RS485_ENABLED)) {
+		temp = readl(sport->port.membase + UCR2);
+		temp &= ~(UCR2_CTS | UCR2_CTSC);
+		if (mctrl & TIOCM_RTS)
+			temp |= UCR2_CTS | UCR2_CTSC;
+		writel(temp, sport->port.membase + UCR2);
+	}
 
 	temp = readl(sport->port.membase + uts_reg(sport)) & ~UTS_LOOP;
 	if (mctrl & TIOCM_LOOP)
@@ -1090,26 +1056,11 @@ static int imx_startup(struct uart_port *port)
 	 */
 	temp = readl(sport->port.membase + UCR4);
 
-	if (USE_IRDA(sport))
-		temp |= UCR4_IRSC;
-
 	/* set the trigger level for CTS */
 	temp &= ~(UCR4_CTSTL_MASK << UCR4_CTSTL_SHF);
 	temp |= CTSTL << UCR4_CTSTL_SHF;
 
 	writel(temp & ~UCR4_DREN, sport->port.membase + UCR4);
-
-	if (USE_IRDA(sport)) {
-		/* reset fifo's and state machines */
-		int i = 100;
-		temp = readl(sport->port.membase + UCR2);
-		temp &= ~UCR2_SRST;
-		writel(temp, sport->port.membase + UCR2);
-		while (!(readl(sport->port.membase + UCR2) & UCR2_SRST) &&
-		    (--i > 0)) {
-			udelay(1);
-		}
-	}
 
 	/*
 	 * Allocate the IRQ(s) i.MX1 has three interrupts whereas later
@@ -1125,14 +1076,6 @@ static int imx_startup(struct uart_port *port)
 				DRIVER_NAME, sport);
 		if (retval)
 			goto error_out2;
-
-		/* do not use RTS IRQ on IrDA */
-		if (!USE_IRDA(sport)) {
-			retval = request_irq(sport->rtsirq, imx_rtsint, 0,
-					DRIVER_NAME, sport);
-			if (retval)
-				goto error_out3;
-		}
 	} else {
 		retval = request_irq(sport->port.irq, imx_int, 0,
 				DRIVER_NAME, sport);
@@ -1151,11 +1094,6 @@ static int imx_startup(struct uart_port *port)
 	temp = readl(sport->port.membase + UCR1);
 	temp |= UCR1_RRDYEN | UCR1_RTSDEN | UCR1_UARTEN;
 
-	if (USE_IRDA(sport)) {
-		temp |= UCR1_IREN;
-		temp &= ~(UCR1_RTSDEN);
-	}
-
 	writel(temp, sport->port.membase + UCR1);
 
 	temp = readl(sport->port.membase + UCR2);
@@ -1164,36 +1102,18 @@ static int imx_startup(struct uart_port *port)
 		temp |= UCR2_IRTS;
 	writel(temp, sport->port.membase + UCR2);
 
-	if (USE_IRDA(sport)) {
-		/* clear RX-FIFO */
-		int i = 64;
-		while ((--i > 0) &&
-			(readl(sport->port.membase + URXD0) & URXD_CHARRDY)) {
-			barrier();
-		}
-	}
-
 	if (!is_imx1_uart(sport)) {
 		temp = readl(sport->port.membase + UCR3);
 		temp |= IMX21_UCR3_RXDMUXSEL | UCR3_ADNIMP;
 		writel(temp, sport->port.membase + UCR3);
 	}
 
-	if (USE_IRDA(sport)) {
-		temp = readl(sport->port.membase + UCR4);
-		if (sport->irda_inv_rx)
-			temp |= UCR4_INVR;
-		else
-			temp &= ~(UCR4_INVR);
-		writel(temp | UCR4_DREN, sport->port.membase + UCR4);
-
-		temp = readl(sport->port.membase + UCR3);
-		if (sport->irda_inv_tx)
-			temp |= UCR3_INVT;
-		else
-			temp &= ~(UCR3_INVT);
-		writel(temp, sport->port.membase + UCR3);
-	}
+    if (port->rs485.flags & SER_RS485_ENABLED) {
+        /* clear CTSC */
+	    temp = readl(sport->port.membase + UCR2);
+        temp &= ~UCR2_CTSC;
+	    writel(temp, sport->port.membase + UCR2);
+    } 
 
 	/*
 	 * Enable modem status interrupts
@@ -1201,21 +1121,8 @@ static int imx_startup(struct uart_port *port)
 	imx_enable_ms(&sport->port);
 	spin_unlock_irqrestore(&sport->port.lock, flags);
 
-	if (USE_IRDA(sport)) {
-		struct imxuart_platform_data *pdata;
-		pdata = dev_get_platdata(sport->port.dev);
-		sport->irda_inv_rx = pdata->irda_inv_rx;
-		sport->irda_inv_tx = pdata->irda_inv_tx;
-		sport->trcv_delay = pdata->transceiver_delay;
-		if (pdata->irda_enable)
-			pdata->irda_enable(1);
-	}
-
 	return 0;
 
-error_out3:
-	if (sport->txirq)
-		free_irq(sport->txirq, sport);
 error_out2:
 	if (sport->rxirq)
 		free_irq(sport->rxirq, sport);
@@ -1244,12 +1151,12 @@ static void imx_shutdown(struct uart_port *port)
 	writel(temp, sport->port.membase + UCR2);
 	spin_unlock_irqrestore(&sport->port.lock, flags);
 
-	if (USE_IRDA(sport)) {
-		struct imxuart_platform_data *pdata;
-		pdata = dev_get_platdata(sport->port.dev);
-		if (pdata->irda_enable)
-			pdata->irda_enable(0);
-	}
+    if (port->rs485.flags & SER_RS485_ENABLED) {
+        /* clear CTSC */
+	    temp = readl(sport->port.membase + UCR2);
+        temp &= ~UCR2_CTSC;
+	    writel(temp, sport->port.membase + UCR2);
+    } 
 
 	/*
 	 * Stop our timer.
@@ -1260,8 +1167,6 @@ static void imx_shutdown(struct uart_port *port)
 	 * Free the interrupts
 	 */
 	if (sport->txirq > 0) {
-		if (!USE_IRDA(sport))
-			free_irq(sport->rtsirq, sport);
 		free_irq(sport->txirq, sport);
 		free_irq(sport->rxirq, sport);
 	} else
@@ -1274,8 +1179,6 @@ static void imx_shutdown(struct uart_port *port)
 	spin_lock_irqsave(&sport->port.lock, flags);
 	temp = readl(sport->port.membase + UCR1);
 	temp &= ~(UCR1_TXMPTYEN | UCR1_RRDYEN | UCR1_RTSDEN | UCR1_UARTEN);
-	if (USE_IRDA(sport))
-		temp &= ~(UCR1_IREN);
 
 	writel(temp, sport->port.membase + UCR1);
 	spin_unlock_irqrestore(&sport->port.lock, flags);
@@ -1405,24 +1308,16 @@ imx_set_termios(struct uart_port *port, struct ktermios *termios,
 			sport->port.membase + UCR2);
 	old_txrxen &= (UCR2_TXEN | UCR2_RXEN);
 
-	if (USE_IRDA(sport)) {
-		/*
-		 * use maximum available submodule frequency to
-		 * avoid missing short pulses due to low sampling rate
-		 */
-		div = 1;
-	} else {
-		/* custom-baudrate handling */
-		div = sport->port.uartclk / (baud * 16);
-		if (baud == 38400 && quot != div)
-			baud = sport->port.uartclk / (quot * 16);
+	/* custom-baudrate handling */
+	div = sport->port.uartclk / (baud * 16);
+	if (baud == 38400 && quot != div)
+		baud = sport->port.uartclk / (quot * 16);
 
-		div = sport->port.uartclk / (baud * 16);
-		if (div > 7)
-			div = 7;
-		if (!div)
-			div = 1;
-	}
+	div = sport->port.uartclk / (baud * 16);
+	if (div > 7)
+		div = 7;
+	if (!div)
+		div = 1;
 
 	rational_best_approximation(16 * div * baud, sport->port.uartclk,
 		1 << 16, 1 << 16, &num, &denom);
@@ -1602,6 +1497,37 @@ static void imx_poll_put_char(struct uart_port *port, unsigned char c)
 	imx_port_ucrs_restore(port, &old_ucr);
 }
 #endif
+
+static int imx_rs485_config(struct uart_port *port,
+			    struct serial_rs485 *rs485conf)
+{
+	//struct imx_port *sport = (struct imx_port *)port;
+
+	/* unimplemented */
+	//rs485conf->delay_rts_before_send = 0;
+	//rs485conf->delay_rts_after_send = 0;
+	//rs485conf->flags |= SER_RS485_RX_DURING_TX;
+
+	/* RTS is required to control the transmitter */
+	//if (!sport->have_rtscts)
+	//	rs485conf->flags &= ~SER_RS485_ENABLED;
+
+	//if (rs485conf->flags & SER_RS485_ENABLED) {
+	//	unsigned long temp;
+
+		/* disable transmitter */
+	//	temp = readl(sport->port.membase + UCR2);
+	//	temp &= ~UCR2_CTSC;
+	//	if (rs485conf->flags & SER_RS485_RTS_AFTER_SEND)
+	//		temp &= ~UCR2_CTS;
+	//	else
+	//		temp |= UCR2_CTS;
+	//	writel(temp, sport->port.membase + UCR2);
+	//}
+
+	//port->rs485 = *rs485conf;
+	return 0;
+}
 
 static struct uart_ops imx_pops = {
 	.tx_empty	= imx_tx_empty,
@@ -1880,7 +1806,7 @@ static int serial_imx_probe_dt(struct imx_port *sport,
 	struct device_node *np = pdev->dev.of_node;
 	const struct of_device_id *of_id =
 			of_match_device(imx_uart_dt_ids, &pdev->dev);
-	int ret;
+	int ret, i;
 
 	if (!np)
 		/* no device tree device */
@@ -1896,11 +1822,19 @@ static int serial_imx_probe_dt(struct imx_port *sport,
 	if (of_get_property(np, "fsl,uart-has-rtscts", NULL))
 		sport->have_rtscts = 1;
 
-	if (of_get_property(np, "fsl,irda-mode", NULL))
-		sport->use_irda = 1;
-
 	if (of_get_property(np, "fsl,dte-mode", NULL))
 		sport->dte_mode = 1;
+    
+    of_property_read_u32(np, "rs485-mode", &i);
+	if (i)
+		sport->port.rs485.flags |= SER_RS485_ENABLED;
+    else
+		sport->port.rs485.flags &= ~SER_RS485_ENABLED;
+
+    sport->cts_gpio = of_get_named_gpio(np, "cts-gpio", 0);
+    if (gpio_is_valid(sport->cts_gpio)) {
+        pr_debug("%s: cts gpio %d valid\n", __func__, sport->cts_gpio);
+    }
 
 	sport->devdata = of_id->data;
 
@@ -1927,9 +1861,6 @@ static void serial_imx_probe_pdata(struct imx_port *sport,
 
 	if (pdata->flags & IMXUART_HAVE_RTSCTS)
 		sport->have_rtscts = 1;
-
-	if (pdata->flags & IMXUART_IRDA)
-		sport->use_irda = 1;
 }
 
 static int serial_imx_probe(struct platform_device *pdev)
@@ -1943,7 +1874,10 @@ static int serial_imx_probe(struct platform_device *pdev)
 	sport = devm_kzalloc(&pdev->dev, sizeof(*sport), GFP_KERNEL);
 	if (!sport)
 		return -ENOMEM;
-
+    
+    sport->port.rs485_config = imx_rs485_config;
+	sport->port.rs485.flags =
+		SER_RS485_RTS_ON_SEND | SER_RS485_RX_DURING_TX;
 	ret = serial_imx_probe_dt(sport, pdev);
 	if (ret > 0)
 		serial_imx_probe_pdata(sport, pdev);

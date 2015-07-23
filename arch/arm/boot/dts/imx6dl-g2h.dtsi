@@ -303,6 +303,8 @@ reference manual.
 			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT15__UART5_RX_DATA 0x1b0b1
 				MX6QDL_PAD_CSI0_DAT14__UART5_TX_DATA 0x1b0b1
+                //MX6QDL_PAD_CSI0_DAT19__UART5_CTS_B 0x1b0b1
+                MX6QDL_PAD_CSI0_DAT19__GPIO6_IO05    0x80000000
 			>;
 		};
 	};
@@ -348,18 +350,22 @@ reference manual.
 &uart1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1_1>;
+    rs485-mode = <0>;	/* 1 to enable */
 	status = "okay";
 };
 
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2_3>;
+    rs485-mode = <0>;	/* 1 to enable */
 	status = "okay";
 };
 
 &uart5 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart5_1>;
+    rs485-mode = <1>;	/* 1 to enable */
+    cts-gpio = <&gpio6 5 1>; 
 	status = "okay";
 };
 
