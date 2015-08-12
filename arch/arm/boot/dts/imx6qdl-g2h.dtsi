@@ -621,36 +621,6 @@ reference manual.
 		};
 	};
 
-	usbh2 {
-		pinctrl_usbh2_1: usbh2grp-1 {
-			fsl,pins = <
-				MX6QDL_PAD_RGMII_TXC__USB_H2_DATA      0x40013030
-				MX6QDL_PAD_RGMII_TX_CTL__USB_H2_STROBE 0x40013030
-			>;
-		};
-
-		pinctrl_usbh2_2: usbh2grp-2 {
-			fsl,pins = <
-				MX6QDL_PAD_RGMII_TX_CTL__USB_H2_STROBE 0x40017030
-			>;
-		};
-	};
-
-	usbh3 {
-		pinctrl_usbh3_1: usbh3grp-1 {
-			fsl,pins = <
-				MX6QDL_PAD_RGMII_RX_CTL__USB_H3_DATA 0x40013030
-				MX6QDL_PAD_RGMII_RXC__USB_H3_STROBE  0x40013030
-			>;
-		};
-
-		pinctrl_usbh3_2: usbh3grp-2 {
-			fsl,pins = <
-				MX6QDL_PAD_RGMII_RXC__USB_H3_STROBE 0x40017030
-			>;
-		};
-	};
-
 	usdhc2 {
 		pinctrl_usdhc2_1: usdhc2grp-1 {
 			fsl,pins = <
@@ -841,6 +811,7 @@ reference manual.
 
 &usbh1 {
 	status = "okay";
+	en_gpio = <&gpio3 31 1>;
 };
 
 &usbotg {
@@ -849,6 +820,7 @@ reference manual.
 	pinctrl-0 = <&pinctrl_usbotg_1>;
 	disable-over-current;
 	dr_mode = "otg";
+	en_gpio = <&gpio4 15 1>;
 	status = "okay";
 };
 
