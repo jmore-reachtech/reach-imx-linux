@@ -80,29 +80,16 @@
         model = "imx-spdif";
         spdif-controller = <&spdif>;
         spdif-out;
+		status = "disabled";
     };
 
-	mxcfb3: fb@2 {
-		compatible = "fsl,mxc_sdc_fb";
-		disp_dev = "hdmi";
-		interface_pix_fmt = "RGB24";
-		mode_str ="1920x1080M@60";
-		default_bpp = <32>;
-		int_clk = <0>;
-		late_init = <0>;
+	sound-hdmi {
+		compatible = "fsl,imx6q-audio-hdmi",
+			     "fsl,imx-audio-hdmi";
+		model = "imx-audio-hdmi";
+		hdmi-controller = <&hdmi_audio>;
 		status = "disabled";
 	};
-
-	mxcfb2: fb@1 {
-		compatible = "fsl,mxc_sdc_fb";
-        disp_dev = "ldb";
-        interface_pix_fmt = "RGB666";
-        mode_str ="LDB-XGA";
-        default_bpp = <16>;
-        int_clk = <0>;
-        late_init = <0>;
-        status = "disabled";
-    };
 
 	mxcfb1: fb@0 {
 		compatible = "fsl,mxc_sdc_fb";
@@ -114,6 +101,28 @@
 		late_init = <0>;
 		status = "disabled";
 	};
+
+	mxcfb2: fb@1 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "hdmi";
+		interface_pix_fmt = "RGB24";
+		mode_str ="1920x1080M@60";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "disabled";
+	};
+
+	mxcfb3: fb@2 {
+		compatible = "fsl,mxc_sdc_fb";
+        disp_dev = "ldb";
+        interface_pix_fmt = "RGB666";
+        mode_str ="LDB-XGA";
+        default_bpp = <16>;
+        int_clk = <0>;
+        late_init = <0>;
+        status = "disabled";
+    };
 
 	mxcfb4: fb@3 {
 		compatible = "fsl,mxc_sdc_fb";
@@ -185,7 +194,7 @@
 	cs-gpios = <0>, <0>, <&gpio3 24 0>, <&gpio3 25 0>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1_1>;
-	status = "disabled";
+	status = "okay";
 
 	spiflash: nor@2 {
 		#address-cells = <1>;
@@ -277,7 +286,7 @@
 
 &hdmi_core {
 	ipu_id = <0>;
-	disp_id = <0>;
+	disp_id = <1>;
 	status = "disabled";
 };
 
@@ -300,7 +309,7 @@
 	};
 
 	evervision: touch@38 {
-		compatible = "evervision_ts";
+		compatible = "evervision";
 		reg = <0x38>;
 		interrupt-parent = <&gpio4>;
        	interrupts = <5 0>;
