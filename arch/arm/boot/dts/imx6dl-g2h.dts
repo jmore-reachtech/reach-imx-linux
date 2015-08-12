@@ -39,4 +39,14 @@
 	status = "disabled";
 };
 
+&evervision {
+	status = "okay";
+};
 
+&tsc2046 {
+	status = "okay";
+};
+
+&spiflash {
+	status = "okay";
+};
