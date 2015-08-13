@@ -90,7 +90,7 @@
 			     "fsl,imx-audio-hdmi";
 		model = "imx-audio-hdmi";
 		hdmi-controller = <&hdmi_audio>;
-		status = "disabled";
+		status = "okay";
 	};
 
 	mxcfb1: fb@0 {
@@ -283,19 +283,19 @@
 };
 
 &hdmi_audio {
-	status = "disabled";
+	status = "okay";
 };
 
 &hdmi_core {
 	ipu_id = <0>;
 	disp_id = <1>;
-	status = "disabled";
+	status = "okay";
 };
 
 &hdmi_video {
 	fsl,phy_reg_vlev = <0x0294>;
 	fsl,phy_reg_cksymtx = <0x800d>;
-	status = "disabled";
+	status = "okay";
 };
 
 &i2c1 {
@@ -326,6 +326,10 @@
 		VDDIO-supply = <&reg_3p3v>;
 	};
 
+	hdmi: edid@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
+	};
 };
 
 /*
