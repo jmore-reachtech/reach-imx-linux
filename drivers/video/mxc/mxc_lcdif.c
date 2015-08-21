@@ -56,6 +56,23 @@ static struct fb_videomode lcdif_modedb[] = {
           .vmode                  = FB_VMODE_NONINTERLACED,
           .flag                   = 0,
     },
+    {   
+          .name                   = "EVRV-VGA",
+          .refresh                = 60, 
+          .xres                   = 640,
+          .yres                   = 480,
+          .pixclock               = KHZ2PICOS(25000),
+          .left_margin                    = 48, 
+          .right_margin                   = 16, 
+          .hsync_len              = 96, 
+          .upper_margin                   = 31, 
+          .lower_margin                   = 11, 
+          .vsync_len              = 2,  
+          .sync                   = FB_SYNC_CLK_LAT_FALL,
+          .vmode                  = FB_VMODE_NONINTERLACED,
+          .flag                   = 0,
+    },
+
 };
 static int lcdif_modedb_sz = ARRAY_SIZE(lcdif_modedb);
 
