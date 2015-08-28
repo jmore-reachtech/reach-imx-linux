@@ -118,9 +118,8 @@
 	mxcfb3: fb@2 {
 		compatible = "fsl,mxc_sdc_fb";
         disp_dev = "ldb";
-        interface_pix_fmt = "RGB666";
-        mode_str ="LDB-XGA";
-        default_bpp = <16>;
+        interface_pix_fmt = "RGB24";
+        default_bpp = <32>;
         int_clk = <0>;
         late_init = <0>;
         status = "disabled";
@@ -759,17 +758,34 @@ reference manual.
 
 };
 
-#if 0
 &ldb {
-	ipu_id = <0>;
-	disp_id = <1>;
-	ext_ref = <1>;
-	mode = "sin0";
-	sec_ipu_id = <1>;
-	sec_disp_id = <1>;
+    lvds_en_gpio = <&gpio2 11 0>;
+    disp_en_gpio = <&gpio2 8 0>;
+
 	status = "okay";
+ 
+    lvds_channel0: lvds-channel@0 {
+		crtc = "ipu1-di0";
+		fsl,data-mapping = "jeida";
+		fsl,data-width = <24>;
+		status = "okay";
+		primary;
+
+		display-timings {
+			vga_lvds: vga {
+				clock-frequency = <25000000>;
+				hactive = <640>;
+				vactive = <480>;
+				hback-porch = <48>;
+				hfront-porch = <16>;
+				vback-porch = <31>;
+				vfront-porch = <11>;
+				hsync-len = <96>;
+				vsync-len = <6>;
+			};
+        };
+    };
 };
-#endif
 
 &mipi_csi {
 	ipu_id = <0>;
