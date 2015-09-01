@@ -799,12 +799,7 @@ static void ads7846_report_state(struct ads7846 *ts)
 		z2 = packet->tc.z2;
 	}
 
-	/* range filtering */
-	if (x == MAX_12BIT) {
-		x = 0;
-	}
-
-	if (x == 4096 && y == 8191) {
+	if (x == 4096) {
 		pr_debug("Discarding x=%d,y=%d \n", x, y);
 		return;
 	}
