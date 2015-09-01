@@ -128,7 +128,7 @@
 	};
 
 	evervision: touch@38 {
-		compatible = "evervision_ts";
+		compatible = "evervision";
 		reg = <0x38>;
 		interrupt-parent = <&gpio4>;
        	interrupts = <5 0>;

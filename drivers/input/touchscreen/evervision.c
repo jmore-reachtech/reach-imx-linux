@@ -16,7 +16,7 @@
 #include <linux/of_gpio.h>
 #include <linux/of_device.h>
 
-#define DEV_NAME    		"evervision-i2c"
+#define DEV_NAME    		"evervision"
 
 #define NUM_FINGERS_SUPPORTED               10
 #define MSG_SIZE                            62
@@ -285,7 +285,7 @@ static int evervision_ts_probe(struct i2c_client *client, const struct i2c_devic
 		goto err_input_dev_alloc_failed;
 	}
 
-    pdata->input->name = "evervision-ts";
+    pdata->input->name = "evervision";
     set_bit(EV_KEY, pdata->input->evbit);
 	set_bit(BTN_TOUCH, pdata->input->keybit);
 	set_bit(EV_ABS, pdata->input->evbit);
@@ -340,19 +340,19 @@ static int evervision_ts_remove(struct i2c_client *client)
 
 static const struct i2c_device_id evervision_ts_id[] =
 {
-	{ "evervision_ts", 0 },
+	{ "evervision", 0 },
 	{},
 };
 MODULE_DEVICE_TABLE(i2c, evervision_ts_id);
 
 static struct of_device_id evervision_ts_dt_ids[] = {
-	{ .compatible = "evervision_ts" },
+	{ .compatible = "evervision" },
 	{ /* sentinel */ }
 };
 
 static struct i2c_driver evervision_driver = {
 	.driver = {
-		.name	= "evervision_ts",
+		.name	= "evervision",
 		.owner	= THIS_MODULE,
 		.of_match_table	= of_match_ptr(evervision_ts_dt_ids),
 	},
