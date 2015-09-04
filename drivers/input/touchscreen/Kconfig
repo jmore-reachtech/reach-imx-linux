@@ -904,6 +904,24 @@ config TOUCHSCREEN_TSC2007
 	  To compile this driver as a module, choose M here: the
 	  module will be called tsc2007.
 
+config TOUCHSCREEN_TSC2046
+	tristate "TSC2046 touchscreens"
+	depends on SPI_MASTER
+	depends on HWMON = n || HWMON
+	help
+	  Say Y here if you have a touchscreen interface using the
+	  TSC2046 and your board-specific setup code includes that in its
+	  table of SPI devices.
+
+	  If HWMON is selected, and the driver is told the reference voltage
+	  on your board, you will also get hwmon interfaces for the voltage
+	  (and on tsc2046, temperature) sensors of this chip.
+
+	  If unsure, say N (but it's safe to say "Y").
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tsc2046.
+
 config TOUCHSCREEN_W90X900
 	tristate "W90P910 touchscreen driver"
 	depends on HAVE_CLK
