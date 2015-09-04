@@ -63,6 +63,7 @@
 };
 
 &tsc2046 {
-         status = "okay";
+        ti,swap-xy = /bits/ 16 <1>;
+        status = "okay";
 };
 

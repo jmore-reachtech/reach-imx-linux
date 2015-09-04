@@ -17,7 +17,7 @@
 / {
     /*
      * Panel: 10.1" WXGA
-     * Touch: eGalax USB
+     * Touch: evervision 
      * Display Interface: LDB
      * LDB Clock: PLL2
      */
@@ -62,8 +62,7 @@
 	status = "disabled";
 };
 
-&tsc2046 {
-    ti,swap-xy = /bits/ 16 <1>;
+&evervision {
     status = "okay";
 };
 
