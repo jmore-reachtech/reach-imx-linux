@@ -63,9 +63,6 @@
 };
 
 &tsc2046 {
-    ti,debounce-rep = /bits/ 16 <3>;
-    ti,debounce-tol = /bits/ 16 <5>; 
-    ti,settle-delay-usec = /bits/ 16 <5>; 
     ti,swap-xy = /bits/ 16 <1>;
     status = "okay";
 };
