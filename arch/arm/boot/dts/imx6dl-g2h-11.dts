@@ -63,12 +63,7 @@
 };
 
 &tsc2046 {
-    ti,x-plate-ohms = /bits/ 16 <100>;
-    ti,debounce-rep = /bits/ 16 <4>;
-    ti,debounce-tol = /bits/ 16 <10>; 
-    ti,settle-delay-usec = /bits/ 16 <100>; 
     ti,swap-xy = /bits/ 16 <1>;
-    ti,keep-vref-on = /bits/ 16 <1>;
     status = "okay";
 };
 
