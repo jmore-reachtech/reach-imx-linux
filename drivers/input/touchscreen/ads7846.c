@@ -65,6 +65,51 @@
 /* this driver doesn't aim at the peak continuous sample rate */
 #define	SAMPLE_BITS	(8 /*cmd*/ + 16 /*sample*/ + 2 /* before, after */)
 
+#define BUF_SIZE 64
+
+#ifdef DEBUG
+struct debug_entry {
+    u8 rx[2];
+    int val;
+    int update;
+    int delta;
+    int action;
+    int x, y, z;
+};
+
+struct debug_entry debug_buf[BUF_SIZE];
+struct debug_entry *debug_cur;
+struct debug_entry *debug_tail;
+
+static void debug_buf_incr(void)
+{
+    if(debug_cur == debug_tail) {
+        debug_cur = &debug_buf[0];
+        return;
+    }
+
+    debug_cur++;
+}
+
+static void debug_buf_display(void)
+{
+    struct debug_entry *p = &debug_buf[0];
+
+    while(p != debug_cur)  {
+       pr_debug("0x%02x%02x, 0x%04x, 0x%04x, %d, %d, %d, %d, %d\n",
+            p->rx[0], p->rx[1],
+            p->val,
+            p->update,
+            p->delta,
+            p->action,
+            p->x,
+            p->y,
+            p->z);
+        p++;
+    }
+}
+#endif
+
 struct ts_event {
 	/*
 	 * For portability, we can't read 12 bit values using SPI (which
@@ -655,6 +700,10 @@ static int ads7846_debounce_filter(void *ads, int data_idx, int *val)
 {
 	struct ads7846 *ts = ads;
 
+#ifdef DEBUG
+    debug_cur->delta = abs(ts->last_read - *val);
+#endif
+
 	if (!ts->read_cnt || (abs(ts->last_read - *val) > ts->debounce_tol)) {
 		/* Start over collecting consistent readings. */
 		ts->read_rep = 0;
@@ -710,6 +759,9 @@ static int ads7846_get_value(struct ads7846 *ts, struct spi_message *m)
 		 * adjust:  on-wire is a must-ignore bit, a BE12 value, then
 		 * padding; built from two 8 bit values written msb-first.
 		 */
+#ifdef DEBUG
+        memcpy(debug_cur->rx,t->rx_buf,2);
+#endif
 		return be16_to_cpup((__be16 *)t->rx_buf) >> 3;
 	}
 }
@@ -718,6 +770,10 @@ static void ads7846_update_value(struct spi_message *m, int val)
 {
 	struct spi_transfer *t =
 		list_entry(m->transfers.prev, struct spi_transfer, transfer_list);
+
+#ifdef DEBUG
+    debug_cur->update = val;
+#endif
 
 	*(u16 *)t->rx_buf = val;
 }
@@ -750,21 +806,33 @@ static void ads7846_read_state(struct ads7846 *ts)
 		if (msg_idx < ts->msg_count - 1) {
 
 			val = ads7846_get_value(ts, m);
+#ifdef DEBUG
+            debug_cur->val = val;
+#endif
 
 			action = ts->filter(ts->filter_data, msg_idx, &val);
 			switch (action) {
 			case ADS7846_FILTER_REPEAT:
+#ifdef DEBUG
+                debug_cur->action = ADS7846_FILTER_REPEAT;
+#endif
 				continue;
 
 			case ADS7846_FILTER_IGNORE:
 				packet->tc.ignore = true;
 				msg_idx = ts->msg_count - 1;
+#ifdef DEBUG
+                debug_cur->action = ADS7846_FILTER_IGNORE;
+#endif
 				continue;
 
 			case ADS7846_FILTER_OK:
 				ads7846_update_value(m, val);
 				packet->tc.ignore = false;
 				msg_idx++;
+#ifdef DEBUG
+                debug_cur->action = ADS7846_FILTER_OK;
+#endif
 				break;
 
 			default:
@@ -773,6 +841,12 @@ static void ads7846_read_state(struct ads7846 *ts)
 		} else {
 			msg_idx++;
 		}
+#ifdef DEBUG
+        debug_cur->x = packet->tc.x;
+        debug_cur->y = packet->tc.y;
+        debug_cur->z = packet->tc.z1;
+        debug_buf_incr();
+#endif
 	}
 }
 
@@ -872,6 +946,11 @@ static void ads7846_report_state(struct ads7846 *ts)
 
 		input_sync(input);
 		dev_vdbg(&ts->spi->dev, "%4d/%4d/%4d\n", x, y, Rt);
+#ifdef DEBUG
+        debug_cur->x = x;
+        debug_cur->y = y;
+        debug_cur->z = Rt;
+#endif
 	}
 }
 
@@ -886,6 +965,11 @@ static irqreturn_t ads7846_hard_irq(int irq, void *handle)
 static irqreturn_t ads7846_irq(int irq, void *handle)
 {
 	struct ads7846 *ts = handle;
+
+#ifdef DEBUG
+    debug_cur = &debug_buf[0];
+    debug_tail = &debug_buf[BUF_SIZE - 1];
+#endif
 
 	/* Start with a small delay before checking pendown state */
 	msleep(TS_POLL_DELAY);
@@ -913,6 +997,9 @@ static irqreturn_t ads7846_irq(int irq, void *handle)
 		dev_vdbg(&ts->spi->dev, "UP\n");
 	}
 
+#ifdef DEBUG
+    debug_buf_display();
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -1028,15 +1115,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 	spi_message_init(m);
 	m->context = ts;
 
-	if (ts->model == 7845) {
-		packet->read_y_cmd[0] = READ_Y(vref);
-		packet->read_y_cmd[1] = 0;
-		packet->read_y_cmd[2] = 0;
-		x->tx_buf = &packet->read_y_cmd[0];
-		x->rx_buf = &packet->tc.y_buf[0];
-		x->len = 3;
-		spi_message_add_tail(x, m);
-	} else {
 		/* y- still on; turn on only y+ (and ADC) */
 		packet->read_y = READ_Y(vref);
 		x->tx_buf = &packet->read_y;
@@ -1047,7 +1125,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 		x->rx_buf = &packet->tc.y;
 		x->len = 2;
 		spi_message_add_tail(x, m);
-	}
 
 	/*
 	 * The first sample after switching drivers can be low quality;
@@ -1073,16 +1150,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 	spi_message_init(m);
 	m->context = ts;
 
-	if (ts->model == 7845) {
-		x++;
-		packet->read_x_cmd[0] = READ_X(vref);
-		packet->read_x_cmd[1] = 0;
-		packet->read_x_cmd[2] = 0;
-		x->tx_buf = &packet->read_x_cmd[0];
-		x->rx_buf = &packet->tc.x_buf[0];
-		x->len = 3;
-		spi_message_add_tail(x, m);
-	} else {
 		/* turn y- off, x+ on, then leave in lowpower */
 		x++;
 		packet->read_x = READ_X(vref);
@@ -1094,7 +1161,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 		x->rx_buf = &packet->tc.x;
 		x->len = 2;
 		spi_message_add_tail(x, m);
-	}
 
 	/* ... maybe discard first sample ... */
 	if (pdata->settle_delay_usecs) {
@@ -1182,14 +1248,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 	spi_message_init(m);
 	m->context = ts;
 
-	if (ts->model == 7845) {
-		x++;
-		packet->pwrdown_cmd[0] = PWRDOWN;
-		packet->pwrdown_cmd[1] = 0;
-		packet->pwrdown_cmd[2] = 0;
-		x->tx_buf = &packet->pwrdown_cmd[0];
-		x->len = 3;
-	} else {
 		x++;
 		packet->pwrdown = PWRDOWN;
 		x->tx_buf = &packet->pwrdown;
@@ -1199,7 +1257,6 @@ static void ads7846_setup_spi_msg(struct ads7846 *ts,
 		x++;
 		x->rx_buf = &packet->dummy;
 		x->len = 2;
-	}
 
 	CS_CHANGE(*x);
 	spi_message_add_tail(x, m);
@@ -1454,6 +1511,12 @@ static int ads7846_probe(struct spi_device *spi)
 		goto err_remove_attr_group;
 
 	device_init_wakeup(&spi->dev, pdata->wakeup);
+
+    /* used for debugging */
+#ifdef DEBUG
+    debug_cur = &debug_buf[0];
+    debug_tail = &debug_buf[BUF_SIZE - 1];
+#endif
 
 	return 0;
 
