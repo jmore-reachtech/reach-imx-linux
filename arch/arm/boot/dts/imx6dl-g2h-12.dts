@@ -67,3 +67,7 @@
         status = "okay";
 };
 
+&spiflash {
+    status = "okay";
+};
+
