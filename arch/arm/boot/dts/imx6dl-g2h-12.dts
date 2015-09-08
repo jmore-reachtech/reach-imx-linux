@@ -71,3 +71,6 @@
     status = "okay";
 };
 
+&flexcan1 {
+    status = "okay";
+};
