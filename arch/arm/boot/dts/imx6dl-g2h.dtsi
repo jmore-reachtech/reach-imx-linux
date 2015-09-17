@@ -53,7 +53,22 @@
 			gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
 			enable-active-high;
 		};
-	};	
+	};
+
+    pwmleds {
+		compatible = "pwm-leds";
+
+		vol_pwm1 {
+			label = "vol_pwm1";
+			pwms = <&pwm1 0 5000000>;
+			max-brightness = <255>;
+		};
+		freq_pwm2 {
+			label = "freq_pwm2";
+			pwms = <&pwm2 0 5000000>;
+			max-brightness = <255>;
+		};
+	};
 
     sound {
 		compatible = "fsl,imx6-hawthorne-sgtl5000", 
@@ -76,15 +91,6 @@
 		default-brightness-level = <7>;
 		status = "okay";
 	};
-
-    dipswitch: dipswitch@0 {
-		compatible = "reach,dipswitch";
-        dip-pin-1 = <&gpio1 20 1>;
-        dip-pin-2 = <&gpio1 17 1>;
-        dip-pin-3 = <&gpio1 19 1>;
-        dip-pin-4 = <&gpio1 21 1>;
-        status = "disabled";
-    };
 
 	v4l2_out {
 		compatible = "fsl,mxc_v4l2_output";
@@ -214,11 +220,6 @@ reference manual.
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
                 MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ TSC2056 */
                 MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */  
-                /* 4 position dip switch */
-                MX6QDL_PAD_SD1_CLK__GPIO1_IO20    0x80000000    /* SW_OPT1 */ 
-                MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
-                MX6QDL_PAD_SD1_DAT2__GPIO1_IO19   0x80000000    /* SW_OPT3 */ 
-                MX6QDL_PAD_SD1_DAT3__GPIO1_IO21   0x80000000    /* SW_OPT4 */ 
                 MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000    /* Audio Standby */
                 MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
                 MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0 /* LVDS0_EN */
@@ -333,6 +334,18 @@ reference manual.
 &audmux {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_audmux_2>;
+	status = "okay";
+};
+
+&pwm1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm1_1>;
+	status = "okay";
+};
+
+&pwm2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm2_3>;
 	status = "okay";
 };
 
