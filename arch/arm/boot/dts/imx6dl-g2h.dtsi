@@ -55,7 +55,7 @@
 		};
 	};	
 
-    sound {
+    sound: sound@0 {
 		compatible = "fsl,imx6-hawthorne-sgtl5000", 
                              "fsl,imx-audio-sgtl5000";
 		model = "imx6-hawthorne-sgtl5000";
@@ -124,7 +124,7 @@
 		compatible = "nxp,pca9534";
 		#gpio-controller;
 		reg = <0x3E>;
-		status = "okay";
+		status = "disabled";
 	};
 
 	evervision: touch@38 {
@@ -141,6 +141,7 @@
 		clocks = <&clks 201>;
 		VDDA-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_3p3v>;
+        status = "okay";
 	};
 
 
