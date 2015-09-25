@@ -26,6 +26,7 @@
 #include <linux/mfd/syscon/imx6q-iomuxc-gpr.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/types.h>
@@ -678,7 +679,7 @@ static int ldb_probe(struct platform_device *pdev)
 	struct device_node *np = dev->of_node, *child;
 	struct ldb_data *ldb;
 	bool ext_ref;
-	int i, data_width, mapping, child_count = 0;
+	int i, data_width, mapping, child_count = 0, en;
 	char clkname[16];
 
 	ldb = devm_kzalloc(dev, sizeof(*ldb), GFP_KERNEL);
@@ -859,6 +860,16 @@ static int ldb_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	/* enable panel */
+	en = of_get_named_gpio(np, "disp_en_gpio", 0);
+	if(gpio_is_valid(en))
+		devm_gpio_request_one(dev, en, GPIOF_OUT_INIT_HIGH,
+				      "disp_en_gpio");
+
+	en = of_get_named_gpio(np, "lvds_en_gpio", 0);
+	if (gpio_is_valid(en))
+		devm_gpio_request_one(dev, en, GPIOF_OUT_INIT_HIGH,
+				      "lvds_en_gpio");
 	ldb->mddh = mxc_dispdrv_register(&ldb_drv);
 	mxc_dispdrv_setdata(ldb->mddh, ldb);
 	dev_set_drvdata(&pdev->dev, ldb);
