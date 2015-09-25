@@ -115,6 +115,37 @@ static int __init imx6q_flexcan_fixup_auto(void)
 	return 0;
 }
 
+static int __init imx6q_gpio_ext_fixup(void)
+{
+    struct device_node *np;
+    int gpio;
+
+    np = of_find_node_by_path("/gpio_ext");
+    if (!np) {
+        pr_err("gpio_ext of node not found! \n");
+        return -ENODEV;
+    }
+
+    gpio = of_get_named_gpio(np,"j21-p3", 0);
+	if (gpio_is_valid(gpio)) {
+        printk("%s: enable j21-p3 gpio %d\n", __func__, gpio);
+		gpio_request_one(gpio, GPIOF_DIR_IN, "j21-p3");
+        gpio_set_value(gpio, 0);
+        gpio_free(gpio);
+    }
+
+    gpio = of_get_named_gpio(np,"j21-p4", 0);
+	if (gpio_is_valid(gpio)) {
+        printk("%s: enable j21-p4 gpio %d\n", __func__, gpio);
+		gpio_request_one(gpio, GPIOF_DIR_IN, "j21-p4");
+        gpio_set_value(gpio, 0);
+        gpio_free(gpio);
+    } 
+
+    return 0;
+}
+
+
 /*
  * We need to setup the GPIO here
  */
@@ -132,45 +163,23 @@ static int __init imx6q_cts_fixup(void)
 
     cts = of_get_named_gpio(np,"cts-gpio", 0);
 	if (gpio_is_valid(cts)) {
-        printk("%s: enable cts gpio %d \n", __func__, cts);
+        printk("%s: enable uart5 cts gpio %d \n", __func__, cts);
 		gpio_request_one(cts, GPIOF_DIR_OUT, "uart5-cts");
         gpio_set_value(cts, 0);
     }
 
-    return 0;
-}
-
-/*
- * We need to setup the GPIO here
- */
-static int __init imx6q_dip_fixup(void)
-{
-	struct device_node *np;
-
-    np = of_find_node_by_path("/dipswitch@0");
+    /* grab uart4*/
+	np = of_find_node_by_path("/soc/aips-bus@02100000/serial@021f0000");
     if (!np) {
-        pr_err("dipswitch of node not found! \n");
+        pr_err("uart4 of node not found! \n");
         return -ENODEV;
     }
 
-    dip_switch.pin1 = of_get_named_gpio(np,"dip-pin-1", 0);
-	if (gpio_is_valid(dip_switch.pin1)) {
-		gpio_request_one(dip_switch.pin1, GPIOF_DIR_IN, "dip-pin-1");
-    }
-
-    dip_switch.pin2 = of_get_named_gpio(np,"dip-pin-2", 0);
-	if (gpio_is_valid(dip_switch.pin2)) {
-		gpio_request_one(dip_switch.pin2, GPIOF_DIR_IN, "dip-pin-2");
-    }
-
-    dip_switch.pin3 = of_get_named_gpio(np,"dip-pin-3", 0);
-	if (gpio_is_valid(dip_switch.pin3)) {
-		gpio_request_one(dip_switch.pin3, GPIOF_DIR_IN, "dip-pin-3");
-    }
-
-    dip_switch.pin4 = of_get_named_gpio(np,"dip-pin-4", 0);
-	if (gpio_is_valid(dip_switch.pin4)) {
-		gpio_request_one(dip_switch.pin4, GPIOF_DIR_IN, "dip-pin-4");
+    cts = of_get_named_gpio(np,"cts-gpio", 0);
+	if (gpio_is_valid(cts)) {
+        printk("%s: enable uart4 cts gpio %d \n", __func__, cts);
+		gpio_request_one(cts, GPIOF_DIR_OUT, "uart4-cts");
+        gpio_set_value(cts, 0);
     }
 
     return 0;
@@ -608,9 +617,9 @@ static void __init imx6q_init_late(void)
 
 	if (of_machine_is_compatible("reach,imx6sdl-hawthorne")) {
 		imx6q_usb_fixup();
-		imx6q_dip_fixup();
 		imx6q_audio_fixup();
 		imx6q_cts_fixup();
+        imx6q_gpio_ext_fixup();
 	}
 }
 

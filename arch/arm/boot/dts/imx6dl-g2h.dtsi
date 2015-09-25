@@ -70,6 +70,11 @@
 		};
 	};
 
+    gpio_ext {
+        j21-p3 = <&gpio6 15 0>;
+        j21-p4 = <&gpio2 10 0>;
+    };
+
     sound {
 		compatible = "fsl,imx6-hawthorne-sgtl5000", 
                              "fsl,imx-audio-sgtl5000";
@@ -152,6 +157,13 @@
 
 };
 
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3_3>;
+	status = "okay";
+};
+
 /*
 For reference here, the PAD_CTL bitfield definition from
 Documentation/devicetree/bindings/pinctrl/fsl,imx6q-pinctrl.txt
@@ -185,8 +197,8 @@ Example, the Control Pad Setting
 
 corresponds to:
 
-   0b1111000010110000
-
+   0b 1111 0000 1011 0000
+    
 which is:
 
    PAD_CTL_PUS_22K_UP | PAD_CTL_PUE | PAD_CTL_PKE |
@@ -220,10 +232,13 @@ reference manual.
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
                 MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ TSC2056 */
                 MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */  
-                MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000    /* Audio Standby */
-                MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
-                MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0 /* LVDS0_EN */
-				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x130B0 /* LCD PWR_EN */
+                MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000 /* Audio Standby */
+                MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000 /* Headphone detect */
+                MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0    /* LVDS0_EN */
+				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x130B0    /* LCD PWR_EN */
+
+                MX6QDL_PAD_SD4_DAT2__GPIO2_IO10   0x80000000 /* J21 pin 4 */
+                MX6QDL_PAD_NANDF_CS2__GPIO6_IO15  0x80000000 /* J21 pin 3*/
 			>;
 		};
 	};
@@ -299,12 +314,21 @@ reference manual.
 		};
 	};
 
+    uart4 {
+		pinctrl_uart4_2: uart4grp-2 {
+			fsl,pins = <
+                MX6QDL_PAD_KEY_ROW0__UART4_RX_DATA	    0x1f0b1 
+                MX6QDL_PAD_CSI0_DAT12__UART4_TX_DATA    0x1b0b1 
+                MX6QDL_PAD_CSI0_DAT16__GPIO6_IO02       0x80000000
+			>;
+		};
+	};
+
 	uart5 {
 		pinctrl_uart5_1: uart5grp-1 {
 			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT15__UART5_RX_DATA 0x1b0b1
 				MX6QDL_PAD_CSI0_DAT14__UART5_TX_DATA 0x1b0b1
-                //MX6QDL_PAD_CSI0_DAT19__UART5_CTS_B 0x1b0b1
                 MX6QDL_PAD_CSI0_DAT19__GPIO6_IO05    0x80000000
 			>;
 		};
@@ -371,6 +395,14 @@ reference manual.
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2_3>;
     rs485-mode = <0>;	/* 1 to enable */
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4_2>;
+    rs485-mode = <1>;	/* 1 to enable */
+    cts-gpio = <&gpio6 2 1>; 
 	status = "okay";
 };
 
