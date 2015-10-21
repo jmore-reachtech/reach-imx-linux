@@ -46,16 +46,30 @@
 };
 
 &ldb {
-	ipu_id = <0>;
-	disp_id = <0>;
-	ext_ref = <1>;
-	mode = "sin0";
-	sec_ipu_id = <0>;
-	sec_disp_id = <0>;
+	status = "okay";
 	lvds_en_gpio = <&gpio2 8 1>;
 	disp_en_gpio = <&gpio2 11 1>;
-	channel_mapping = "SPWG";
-	status = "okay";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+		status = "okay";
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: hsd100pxn1 {
+				clock-frequency = <65000000>;
+				hactive = <1280>;
+				vactive = <800>;
+				hback-porch = <220>;
+				hfront-porch = <40>;
+				vback-porch = <21>;
+				vfront-porch = <7>;
+				hsync-len = <60>;
+				vsync-len = <10>;
+			};
+		};
+	};
 };
 
 &spiflash {
