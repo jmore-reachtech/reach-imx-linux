@@ -624,7 +624,7 @@
 	imx6qdl-g2h {
 		pinctrl_hog_1: hoggrp-1 {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x130b0
+				MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x000b0
 				MX6QDL_PAD_EIM_D22__USB_OTG_PWR		0x80000000	/* USB Power Enable */
 				MX6QDL_PAD_GPIO_2__GPIO1_IO02       0x80000000	/* uSDHC3 CD */
 				MX6QDL_PAD_GPIO_4__GPIO1_IO04       0x80000000	/* uSDHC2 CD */
