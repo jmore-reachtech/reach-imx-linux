@@ -56,7 +56,16 @@
 			regulator-name = "usb_otg_vbus";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio3 22 0>;
+			gpio = <&gpio4 15 0>;
+			enable-active-high;
+		};
+
+		reg_usb_usbh1_vbus: usb_usbh1_vbus {
+			compatible = "regulator-fixed";
+			regulator-name = "usb_otg_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			gpio = <&gpio3 31 0>;
 			enable-active-high;
 		};
 	};
@@ -717,8 +726,8 @@
 };
 
 &usbh1 {
+	vbus-supply = <&reg_usb_usbh1_vbus>;
 	status = "okay";
-	en_gpio = <&gpio3 31 1>;
 };
 
 &usbotg {
@@ -727,7 +736,6 @@
 	pinctrl-0 = <&pinctrl_usbotg_1>;
 	disable-over-current;
 	dr_mode = "otg";
-	en_gpio = <&gpio4 15 1>;
 	status = "okay";
 };
 
