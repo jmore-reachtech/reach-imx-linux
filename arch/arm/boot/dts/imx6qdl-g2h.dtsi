@@ -68,6 +68,15 @@
 			gpio = <&gpio3 31 0>;
 			enable-active-high;
 		};
+
+		reg_audio: audio {
+			compatible = "regulator-fixed";
+			regulator-name = "usb_otg_vbus";
+			regulator-min-microvolt = <3300000>;
+			regulator-max-microvolt = <3300000>;
+			gpio = <&gpio5 31 0>;
+			enable-active-high;
+		};
 	};
 
 	sound {
@@ -321,7 +330,7 @@
 		reg = <0x0a>;
 		clocks = <&clks 201>;
 		VDDA-supply = <&reg_2p5v>;
-		VDDIO-supply = <&reg_3p3v>;
+		VDDIO-supply = <&reg_audio>;
 	};
 
 	hdmi: edid@50 {
