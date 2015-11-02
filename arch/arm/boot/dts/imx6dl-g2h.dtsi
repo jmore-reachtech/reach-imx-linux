@@ -133,6 +133,9 @@
 		interrupt-parent = <&gpio4>;
        	interrupts = <5 0>;
 		status = "disabled";
+        swap-x-y = <1>;
+        max-x = <2047>;
+        max-y = <2047>;
 	};
 
     codec: sgtl5000@0a {

@@ -233,14 +233,26 @@ static int evr_ft5x06_detect(struct i2c_client *client)
 	return 0;
 }
 
+static void evr_ft5x06_probe_dt(struct i2c_client *client,
+            struct evr_ft5x06_ts_data *data)
+{
+    struct device_node *np = client->dev.of_node;
+
+    if(np == NULL) {
+        return;
+    }
+
+    of_property_read_u32(np, "swap-x-y", &swap_x_y);
+    of_property_read_u32(np, "max-x", &data->num_x);
+    of_property_read_u32(np, "max-y", &data->num_y);
+}
+
 static int evr_ft5x06_ts_probe(struct i2c_client *client,
 					 const struct i2c_device_id *id)
 {
 	int err = 0;
 	struct evr_ft5x06_ts_data *ts;
-	//struct input_dev *input;
     struct device *dev = &client->dev;
-    //struct device_node *np = client->dev.of_node;
 
 	dev_dbg(dev, "probing for Evervision FT5x06 I2C\n");
 
@@ -260,6 +272,9 @@ static int evr_ft5x06_ts_probe(struct i2c_client *client,
 	ts->irq = client->irq;
     ts->num_x = X_RES;
     ts->num_y = Y_RES;
+
+    /* look for dt data */
+    evr_ft5x06_probe_dt(client, ts);
 
     err = request_threaded_irq(ts->irq, NULL, evr_ft5x06_ts_isr,
 				     IRQF_TRIGGER_LOW | IRQF_ONESHOT,
