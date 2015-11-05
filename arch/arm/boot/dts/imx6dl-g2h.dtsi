@@ -120,12 +120,14 @@
 		status = "okay";
 	};
 
-	pca953x@3e {
-		compatible = "nxp,pca9534";
-		#gpio-controller;
-		reg = <0x3E>;
-		status = "disabled";
-	};
+    /* rotary encoder connected to gpio expander */
+    rotary: rotary@3e {
+        compatible = "g2h-rotary-encoder";
+        reg = <0x3E>;
+		interrupt-parent = <&gpio6>;
+       	interrupts = <16 0>;
+        status = "okay";
+    };
 
 	evervision: touch@38 {
 		compatible = "evervision";
@@ -183,7 +185,7 @@ Example, the Control Pad Setting
 
 corresponds to:
 
-   0b1111000010110000
+   0b1111 0000 1011 0000
 
 which is:
 
@@ -212,6 +214,7 @@ reference manual.
 	gpio {
 		pinctrl_gpio: gpiogrp {
 			fsl,pins = <
+                MX6QDL_PAD_NANDF_CS3__GPIO6_IO16  0x070B0    /* PCA953x Int */
 				MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PCAP Int */
 				MX6QDL_PAD_SD3_RST__GPIO7_IO08    0x80000000 /* PCAP Reset */
 				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
