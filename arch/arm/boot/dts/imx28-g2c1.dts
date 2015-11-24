@@ -58,6 +58,16 @@
 			};
 
 			pinctrl@80018000 {
+				i2c_irq: i2c_irq@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_SSP2_SS0__GPIO_2_19
+					>;
+					fsl,drive-strength = <MXS_DRIVE_4mA>;
+					fsl,voltage = <MXS_VOLTAGE_HIGH>;
+					fsl,pull-up = <MXS_PULL_DISABLE>;
+				};
+
 				phy_reset: phy_reset@0 {
 					reg = <0>;
 					fsl,pinmux-ids = <
@@ -121,6 +131,20 @@
 				pinctrl-names = "default";
 				pinctrl-0 = <&duart_pins_c>;
 				status = "okay";
+			};
+
+			i2c1: i2c@8005a000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&i2c1_pins_a &i2c_irq>;
+				status = "okay";
+
+				evervision: touch@38 {
+					compatible = "evervision";
+					reg = <0x38>;
+					interrupt-parent = <&gpio2>;
+					interrupts = <19 0>;
+					status = "okay";
+				};
 			};
 		};
 	};
