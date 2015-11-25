@@ -108,6 +108,16 @@
 					fsl,voltage = <MXS_VOLTAGE_HIGH>;
 					fsl,pull-up = <MXS_PULL_DISABLE>;
 				};
+
+				led_pin: led_gpio@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_SPDIF__GPIO_3_27
+					>;
+					fsl,drive-strength = <MXS_DRIVE_4mA>;
+					fsl,voltage = <MXS_VOLTAGE_HIGH>;
+					fsl,pull-up = <MXS_PULL_DISABLE>;
+				};
 			};
 
 			lcdif@80030000 {
@@ -209,6 +219,18 @@
 			phy-reset-gpios = <&gpio3 20 0>;
 			phy-reset-duration = <50>;
 			status = "okay";
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&led_pin>;
+
+		user {
+			label = "Heartbeat";
+			gpios = <&gpio3 27 0>;
+			linux,default-trigger = "heartbeat";
 		};
 	};
 
