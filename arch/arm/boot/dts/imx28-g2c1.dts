@@ -189,6 +189,10 @@
 					status = "okay";
 				};
 			};
+
+			mxs_rtc: rtc@80056000 {
+				status = "disabled";
+			};
 		};
 	};
 
