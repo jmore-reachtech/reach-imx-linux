@@ -49,6 +49,13 @@
 
 	apb@80000000 {
 		apbh@80000000 {
+			gpmi-nand@8000c000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&gpmi_pins_a &gpmi_status_cfg
+					     &gpmi_pins>;
+				status = "okay";
+			};
+
 			ssp0: ssp@80010000 {
 				compatible = "fsl,imx28-mmc";
 				pinctrl-names = "default";
@@ -58,6 +65,17 @@
 			};
 
 			pinctrl@80018000 {
+				gpmi_pins: gpmi-nand@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_GPMI_CE1N__GPMI_CE1N
+						MX28_PAD_GPMI_RDY1__GPMI_READY1
+					>;
+					fsl,drive-strength = <MXS_DRIVE_4mA>;
+					fsl,voltage = <MXS_VOLTAGE_HIGH>;
+					fsl,pull-up = <MXS_PULL_DISABLE>;
+				};
+
 				i2c_irq: i2c_irq@0 {
 					reg = <0>;
 					fsl,pinmux-ids = <
