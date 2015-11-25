@@ -195,6 +195,11 @@
 				status = "okay";
 			};
 
+			pwm: pwm@80064000 {
+				pinctrl-names = "default";
+				pinctrl-0 = <&pwm4_pins_a>;
+				status = "okay";
+			};
 
 			duart: serial@80074000 {
 				pinctrl-names = "default";
@@ -255,6 +260,11 @@
 			phy-reset-duration = <50>;
 			status = "okay";
 		};
+	};
+
+	buzzer {
+		compatible = "pwm-beeper";
+		pwms = <&pwm 4 1000000 0>;
 	};
 
 	leds {
