@@ -119,6 +119,16 @@
 					fsl,pull-up = <MXS_PULL_DISABLE>;
 				};
 
+				pca9534: pca9534@0 {
+					reg = <0>;
+					fsl,pinmux-ids = <
+						MX28_PAD_GPMI_CE2N__GPIO_0_18
+					>;
+					fsl,drive-strength = <MXS_DRIVE_4mA>;
+					fsl,voltage = <MXS_VOLTAGE_HIGH>;
+					fsl,pull-up = <MXS_PULL_DISABLE>;
+				};
+
 				usb0_pwr: usb0_pwr@0 {
 					reg = <0>;
 					fsl,pinmux-ids = <
@@ -231,6 +241,14 @@
 				rtc: pcf8523@68 {
 					compatible = "nxp,pcf8523";
 					reg = <0x68>;
+				};
+
+				gpio: pca9534@3e {
+					compatible = "nxp,pca9534";
+					reg = <0x3e>;
+					pinctrl-0 = <&pca9534>;
+					interrupt-parent = <&gpio0>;
+					interrupts = <18 IRQ_TYPE_LEVEL_LOW>;
 				};
 			};
 
