@@ -140,6 +140,12 @@
         max-y = <2047>;
 	};
 
+	rtc: rtc@68 {
+	    compatible = "nxp,pcf8523";
+	    reg = <0x68>;
+	    status = "okay";
+	};
+
     codec: sgtl5000@0a {
 		compatible = "fsl,sgtl5000";
 		reg = <0x0a>;
