@@ -333,7 +333,7 @@ reference manual.
 	usbotg {
 		pinctrl_usbotg_3: usbotggrp-3 {
 			fsl,pins = <
-                MX6QDL_PAD_GPIO_1__GPIO1_IO01 0x80000000
+                MX6QDL_PAD_GPIO_1__GPIO1_IO01 0x1b0b1
 			>;
 		};
 	};

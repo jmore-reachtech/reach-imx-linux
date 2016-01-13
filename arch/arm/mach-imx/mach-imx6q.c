@@ -204,8 +204,8 @@ static int __init imx6q_usb_fixup(void)
 	otg_en_gpio = of_get_named_gpio(np, "en_gpio", 0);
 	if (gpio_is_valid(usbh1_en_gpio)) {
 		pr_debug("%s: enbale otg power \n", __func__);
-		gpio_request_one(otg_en_gpio, GPIOF_DIR_OUT, "otg_pwr_en");
-		gpio_set_value(otg_en_gpio, 1);
+		gpio_request_one(otg_en_gpio, GPIOF_DIR_IN, "otg_pwr_en");
+		gpio_set_value(otg_en_gpio, 0);
 	}
 
 	return 0;
