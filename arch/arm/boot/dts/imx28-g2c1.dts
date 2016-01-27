@@ -207,7 +207,7 @@
 
 			pwm: pwm@80064000 {
 				pinctrl-names = "default";
-				pinctrl-0 = <&pwm4_pins_a>;
+				pinctrl-0 = <&pwm7_pins_a>;
 				status = "okay";
 			};
 
@@ -282,7 +282,7 @@
 
 	buzzer {
 		compatible = "pwm-beeper";
-		pwms = <&pwm 4 1000000 0>;
+		pwms = <&pwm 7 1000000 0>;
 	};
 
 	leds {
