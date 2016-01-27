@@ -2,7 +2,7 @@
  * g2h_rotary_encoder.c
  *
  * (c) 2015 Jeff Horn <jeff@everlook.net>
- * 
+ *
  * Driver based on rotary_encoder.c
  * (c) 2009 Daniel Mack <daniel@caiaq.de>
  * Copyright (C) 2011 Johan Hovold <jhovold@gmail.com>
@@ -73,9 +73,9 @@ static void g2h_rotary_encoder_work_func(struct work_struct *work)
         printk("%s: error reading encoder %d\n", __func__, ret);
         return;
     }
-    
+
     cur = (ret & ROTARY_MASK) >> 2;
-    
+
     if(encoder->last_stable == cur) {
         return;
     }
@@ -111,7 +111,6 @@ static void g2h_rotary_encoder_work_func(struct work_struct *work)
 static irqreturn_t g2h_rotary_encoder_irq(int irq, void *dev_id)
 {
 	struct rotary_encoder_data *encoder = dev_id;
-
     schedule_work(&encoder->work);
 
 	return IRQ_HANDLED;
@@ -120,6 +119,7 @@ static irqreturn_t g2h_rotary_encoder_irq(int irq, void *dev_id)
 /* Return 0 if detection is successful, -ENODEV otherwise */
 static int g2h_rotary_encoder_detect(struct i2c_client *client)
 {
+	int ret = 0;
 	struct i2c_adapter *adapter = client->adapter;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C))
@@ -128,6 +128,12 @@ static int g2h_rotary_encoder_detect(struct i2c_client *client)
     /* check for device, set all pins as input */
     if(i2c_smbus_write_byte_data(client, REG_CFG, 0xFF) != 0) {
         return -ENODEV;
+    }
+
+	// hack so the INT does not get stuck, see PCA953X errata
+	ret = i2c_smbus_read_byte_data(client, REG_INPUT);
+    if(ret < 0) {
+        printk("%s: error reading encoder %d\n", __func__, ret);
     }
 
 	return 0;
@@ -154,8 +160,6 @@ static int g2h_rotary_encoder_probe(struct i2c_client *client,
 	struct input_dev *input;
 	int err;
 
-    printk("%s: \n", __func__);
-
     if(g2h_rotary_encoder_detect(client) != 0) {
        	dev_err(dev, "%s: Could not detect gpio expander.\n",
 			DRV_NAME);
@@ -176,9 +180,9 @@ static int g2h_rotary_encoder_probe(struct i2c_client *client,
 	input->id.product = encoder->client->addr;
 
     g2h_rotary_encoder_parse_dt(client, encoder);
-    
+
     input->evbit[0] = BIT_MASK(EV_REL);
-    input->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y); 
+    input->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
 
     encoder->irq = client->irq;
 	/* request the IRQs */
@@ -196,8 +200,8 @@ static int g2h_rotary_encoder_probe(struct i2c_client *client,
 		goto exit_free_mem;
 	}
 
-    INIT_WORK(&encoder->work, g2h_rotary_encoder_work_func); 
-    
+    INIT_WORK(&encoder->work, g2h_rotary_encoder_work_func);
+
     i2c_set_clientdata(client, encoder);
 
 	return 0;

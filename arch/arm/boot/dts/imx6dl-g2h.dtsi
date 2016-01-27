@@ -53,10 +53,10 @@
 			gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
 			enable-active-high;
 		};
-	};	
+	};
 
     sound: sound@0 {
-		compatible = "fsl,imx6-hawthorne-sgtl5000", 
+		compatible = "fsl,imx6-hawthorne-sgtl5000",
                              "fsl,imx-audio-sgtl5000";
 		model = "imx6-hawthorne-sgtl5000";
 		ssi-controller = <&ssi1>;
@@ -117,7 +117,7 @@
 	temp@1d {
 		compatible = "jc42";
 		reg = <0x1D>;
-		status = "okay";
+		status = "disabled";
 	};
 
     /* rotary encoder connected to gpio expander */
@@ -146,7 +146,7 @@
 		clocks = <&clks 201>;
 		VDDA-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_3p3v>;
-        status = "okay";
+        status = "disabled";
 	};
 
 
@@ -214,18 +214,13 @@ reference manual.
 	gpio {
 		pinctrl_gpio: gpiogrp {
 			fsl,pins = <
-                MX6QDL_PAD_NANDF_CS3__GPIO6_IO16  0x070B0    /* PCA953x Int */
+                MX6QDL_PAD_NANDF_CS3__GPIO6_IO16  0x1f0B0    /* PCA953x Int */
 				MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PCAP Int */
 				MX6QDL_PAD_SD3_RST__GPIO7_IO08    0x80000000 /* PCAP Reset */
 				MX6QDL_PAD_EIM_D31__GPIO3_IO31	  0x80000000 /* USB Power Enable */
 				MX6QDL_PAD_KEY_ROW4__GPIO4_IO15   0x80000000 /* OTG Power Enable */
                 MX6QDL_PAD_GPIO_18__GPIO7_IO13    0x06000    /* PEN IRQ TSC2056 */
-                MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */  
-                /* 4 position dip switch */
-                MX6QDL_PAD_SD1_CLK__GPIO1_IO20    0x80000000    /* SW_OPT1 */ 
-                MX6QDL_PAD_SD1_DAT1__GPIO1_IO17   0x80000000    /* SW_OPT2 */ 
-                MX6QDL_PAD_SD1_DAT2__GPIO1_IO19   0x80000000    /* SW_OPT3 */ 
-                MX6QDL_PAD_SD1_DAT3__GPIO1_IO21   0x80000000    /* SW_OPT4 */ 
+                MX6QDL_PAD_GPIO_19__GPIO4_IO05    0x80000000 /* PEN IRQ Evervision */
                 MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31 0x80000000    /* Audio Standby */
                 MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
                 MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0 /* LVDS0_EN */
@@ -261,7 +256,7 @@ reference manual.
 				MX6QDL_PAD_DISP0_DAT16__IPU1_DISP0_DATA16  0x10
 				MX6QDL_PAD_DISP0_DAT17__IPU1_DISP0_DATA17  0x10
 			>;
-	    }; 
+	    };
     };
 
     gpmi-nand {
@@ -449,7 +444,7 @@ reference manual.
         //ti,x-max = /bits/ 16 <3830>;
         //ti,y-min = /bits/ 16 <190>;
         //ti,y-max = /bits/ 16 <3830>;
-        ti,settle-delay-usec = /bits/ 16 <100>; 
+        ti,settle-delay-usec = /bits/ 16 <100>;
         ti,vref-delay-usecs = /bits/ 16 <450>;
         ti,keep-vref-on = /bits/ 16 <1>;
         ti,x-plate-ohms = /bits/ 16 <450>;
@@ -469,7 +464,7 @@ reference manual.
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_gpmi_nand_2>;
 	status = "ok";
-	
+
 	partition@0 {
 		label = "rootfs";
 		reg = <0x0000000 0x18000000>;
