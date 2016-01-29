@@ -18,6 +18,7 @@ config ARCH_MXC
 	select SPARSE_IRQ
 	select USE_OF
 	select SRAM
+	select HAVE_PWM
 	help
 	  Support for Freescale MXC/iMX-based family of processors
 
