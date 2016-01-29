@@ -120,6 +120,7 @@ static irqreturn_t g2h_rotary_encoder_irq(int irq, void *dev_id)
 /* Return 0 if detection is successful, -ENODEV otherwise */
 static int g2h_rotary_encoder_detect(struct i2c_client *client)
 {
+        int ret = 0;
 	struct i2c_adapter *adapter = client->adapter;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C))
@@ -128,6 +129,12 @@ static int g2h_rotary_encoder_detect(struct i2c_client *client)
     /* check for device, set all pins as input */
     if(i2c_smbus_write_byte_data(client, REG_CFG, 0xFF) != 0) {
         return -ENODEV;
+    }
+
+    // hack so the INT does not get stuck, see PCA953X errata
+    ret = i2c_smbus_read_byte_data(client, REG_INPUT);
+    if(ret < 0) {
+        printk("%s: error reading encoder %d\n", __func__, ret);
     }
 
 	return 0;
