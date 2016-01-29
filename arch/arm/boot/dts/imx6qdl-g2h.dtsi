@@ -173,6 +173,11 @@
 		default-brightness-level = <7>;
 	};
 
+	buzzer {
+		compatible = "pwm-beeper";
+		pwms = <&pwm1 0 5000000>;
+	};
+
 	dipswitch: dipswitch@0 {
 		compatible = "reach,dipswitch";
 		pinctrl-names = "default";
@@ -460,6 +465,14 @@
 	    };
 	};
 
+	pwm1 {
+		pinctrl_pwm1: pwm1grp {
+			fsl,pins = <
+				MX6QDL_PAD_SD1_DAT3__PWM1_OUT 0x1b0b1
+			>;
+		};
+	};
+
 	pwm3 {
 		pinctrl_pwm3: pwm3grp {
 			fsl,pins = <
@@ -696,6 +709,12 @@
 	csi_id = <0>;
 	v_channel = <0>;
 	lanes = <2>;
+	status = "okay";
+};
+
+&pwm1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm1>;
 	status = "okay";
 };
 
