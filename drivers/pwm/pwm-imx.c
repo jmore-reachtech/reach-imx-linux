@@ -130,7 +130,7 @@ static int imx_pwm_config_v2(struct pwm_chip *chip,
 		fifoav = sr & MX3_PWMSR_FIFOAV_MASK;
 		if (fifoav == MX3_PWMSR_FIFOAV_4WORDS) {
 			period_ms = DIV_ROUND_UP(pwm->period, NSEC_PER_MSEC);
-			msleep(period_ms);
+			mdelay(period_ms);
 
 			sr = readl(imx->mmio_base + MX3_PWMSR);
 			if (fifoav == (sr & MX3_PWMSR_FIFOAV_MASK))
@@ -139,7 +139,7 @@ static int imx_pwm_config_v2(struct pwm_chip *chip,
 	} else {
 		writel(MX3_PWMCR_SWR, imx->mmio_base + MX3_PWMCR);
 		do {
-			usleep_range(200, 1000);
+			udelay(1000);
 			cr = readl(imx->mmio_base + MX3_PWMCR);
 		} while ((cr & MX3_PWMCR_SWR) &&
 			 (wait_count++ < MX3_PWM_SWR_LOOP));
