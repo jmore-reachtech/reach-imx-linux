@@ -182,10 +182,12 @@ static inline int evervision_parser_packet(u8 *buff, struct evervision_data *eve
             input_report_abs(evervision->input, ABS_X, X);
             input_report_abs(evervision->input, ABS_Y, Y);
             input_report_abs(evervision->input, ABS_PRESSURE, 255);
+	    input_report_key(evervision->input, BTN_TOUCH, 1);
             input_sync(evervision->input);
             break;
         case 1:
             input_report_abs(evervision->input, ABS_PRESSURE, 0);
+	    input_report_key(evervision->input, BTN_TOUCH, 0);
             input_sync(evervision->input);
             break;
         default:
