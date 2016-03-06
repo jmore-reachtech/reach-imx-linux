@@ -185,8 +185,6 @@ static inline int evervision_parser_packet(u8 *buff, struct evervision_data *eve
             input_sync(evervision->input);
             break;
         case 1:
-            input_report_abs(evervision->input, ABS_X, 0);
-            input_report_abs(evervision->input, ABS_Y, 0);
             input_report_abs(evervision->input, ABS_PRESSURE, 0);
             input_sync(evervision->input);
             break;
