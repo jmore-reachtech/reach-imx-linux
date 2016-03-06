@@ -45,6 +45,9 @@
 
 #define MULTITOUCH_INT_GPIO		MXS_PIN_ENCODE(0x2, 19) /* bank2 starts at 64 and this is pin 19*/
 
+#define MAX_X	2048
+#define MAX_Y	2048
+
 struct point_data {
         short Status;
         short X;
@@ -255,7 +258,6 @@ static int evervision_ts_probe(struct i2c_client *client, const struct i2c_devic
     struct evervision_data *pdata;
     int error = 0;
     int ret = 0;
-    uint16_t max_x = 0, max_y = 0;
 
     pr_debug("%s: irq = %d \n", __func__, client->irq);
 
@@ -290,14 +292,11 @@ static int evervision_ts_probe(struct i2c_client *client, const struct i2c_devic
 	set_bit(BTN_TOUCH, pdata->input->keybit);
 	set_bit(EV_ABS, pdata->input->evbit);
 
-	max_x = pdata->x_range;
-	max_y = pdata->y_range;
-
     __set_bit(ABS_X, pdata->input->absbit);
 	__set_bit(ABS_Y, pdata->input->absbit);
 
-    input_set_abs_params(pdata->input, ABS_X, 0, max_x, 0, 0);
-	input_set_abs_params(pdata->input, ABS_Y, 0, max_y, 0, 0);
+	input_set_abs_params(pdata->input, ABS_X, 0, MAX_X, 0, 0);
+	input_set_abs_params(pdata->input, ABS_Y, 0, MAX_Y, 0, 0);
     input_set_abs_params(pdata->input, ABS_PRESSURE, 0, 10, 0, 0);
 
     if(input_register_device(pdata->input)){
