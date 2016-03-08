@@ -93,6 +93,7 @@
 		mux-ext-port = <3>;
 		audio-stdby-gpio = <&gpio5 31 0>;
 		headphone-det-gpio = <&gpio4 11 0>;
+		status = "disabled";
 	};
 
     sound-spdif {
