@@ -27,9 +27,8 @@
 
 	mxcfb1: fb@0 {
 		compatible = "fsl,mxc_sdc_fb";
-		disp_dev = "lcd";
+		disp_dev = "ldb";
 		interface_pix_fmt = "RGB24";
-		mode_str ="LDB-WXGA";
 		default_bpp = <32>;
 		int_clk = <0>;
 		late_init = <0>;
@@ -62,7 +61,7 @@
 
 		display-timings {
 			native-mode = <&timing0>;
-			timing0: hsd100pxn1 {
+			timing0: wxga {
 				clock-frequency = <65000000>;
 				hactive = <1280>;
 				vactive = <800>;
