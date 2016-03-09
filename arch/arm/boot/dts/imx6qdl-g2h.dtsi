@@ -334,6 +334,7 @@
 	codec: sgtl5000@0a {
 		compatible = "fsl,sgtl5000";
 		reg = <0x0a>;
+		status = "disabled";
 		clocks = <&clks 201>;
 		VDDA-supply = <&reg_2p5v>;
 		VDDIO-supply = <&reg_audio>;
@@ -733,7 +734,7 @@
 
 &ssi1 {
 	fsl,mode = "i2s-slave";
-	status = "okay";
+	status = "disabled";
 };
 
 &uart1 {

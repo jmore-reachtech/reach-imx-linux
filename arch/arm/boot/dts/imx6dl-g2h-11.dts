@@ -53,6 +53,12 @@
 	status = "okay";
 };
 
+&i2c1 {
+	codec: sgtl5000@0a {
+		status = "okay";
+	};
+};
+
 &flexcan1 {
 	status = "okay";
 };
@@ -85,5 +91,9 @@
 };
 
 &spiflash {
+	status = "okay";
+};
+
+&ssi1 {
 	status = "okay";
 };
