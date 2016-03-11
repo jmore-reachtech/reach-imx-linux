@@ -1,0 +1,88 @@
+/*
+ * Copyright 2013 Freescale Semiconductor, Inc.
+ *
+ * Author: Fabio Estevam <fabio.estevam@freescale.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+#include "imx6qdl-g2h.dtsi"
+
+/ {
+    /*
+     * Panel: 5.7" VGA
+     * Touch: TSC2046
+     * Display Interface: LDB
+     * LDB Clock: PLL5
+     */
+	model = "Reach Tech i.MX6 Solo G2H Board";
+	compatible = "reach,imx6dl-g2h", "fsl,imx6dl";
+
+	aliases {
+		mxcfb0 = &mxcfb1;
+	};
+
+	mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "ldb";
+		interface_pix_fmt = "RGB24";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+	};
+};
+
+&clks {
+	fsl,ldb-di0-parent = <&clks IMX6QDL_CLK_PLL5_VIDEO_DIV>;
+	fsl,ldb-di1-parent = <&clks IMX6QDL_CLK_PLL5_VIDEO_DIV>;
+};
+
+&dipswitch {
+    status = "okay";
+};
+
+&epdc {
+	status = "disabled";
+};
+
+&ldb {
+	status = "okay";
+	lvds_en_gpio = <&gpio2 8 1>;
+	disp_en_gpio = <&gpio2 11 1>;
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+		status = "okay";
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: vga {
+				clock-frequency = <25200000>;
+				hactive = <640>;
+				vactive = <480>;
+				hback-porch = <48>;
+				hfront-porch = <16>;
+				vback-porch = <31>;
+				vfront-porch = <11>;
+				hsync-len = <96>;
+				vsync-len = <2>;
+			};
+		};
+	};
+};
+
+&spiflash {
+	status = "okay";
+};
+
+&tsc2046 {
+	status = "okay";
+};
