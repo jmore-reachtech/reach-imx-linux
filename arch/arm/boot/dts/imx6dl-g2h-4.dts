@@ -59,3 +59,7 @@
 &tsc2046 {
 	status = "okay";
 };
+
+&spiflash {
+	status = "okay";
+};
