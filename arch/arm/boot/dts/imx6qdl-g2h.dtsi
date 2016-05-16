@@ -162,7 +162,7 @@
 		default_ifmt = "RGB565";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_ipu1>;
-		status = "okay";
+		status = "disabled";
 		lcd-enable-gpio = <&gpio2 11 0>;
 		backlight-enable-gpio = <&gpio2 8 0>;
 	};
@@ -707,7 +707,7 @@
 &ldb {
 	lvds_en_gpio = <&gpio2 11 0>;
 	disp_en_gpio = <&gpio2 8 0>;
-	status = "okay";
+	status = "disabled";
 	lvds_channel0: lvds-channel@0 {
 		crtc = "ipu1-di0";
 		fsl,data-mapping = "jeida";
