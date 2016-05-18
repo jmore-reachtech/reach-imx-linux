@@ -141,6 +141,9 @@ int lcdif_enable (struct mxc_dispdrv_handle *disp, struct fb_info *fbinfo)
 	struct mxc_lcd_platform_data *plat_data
 			= lcdif->pdev->dev.platform_data;
 
+	if (gpio_is_valid(plat_data->backlight_enable_gpio))
+		gpio_set_value(plat_data->backlight_enable_gpio, 0);
+
 	mdelay(150);
 	if (gpio_is_valid(plat_data->backlight_enable_gpio))
 		gpio_set_value(plat_data->backlight_enable_gpio, 1);
