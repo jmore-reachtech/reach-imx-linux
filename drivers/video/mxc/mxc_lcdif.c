@@ -121,19 +121,6 @@ void lcdif_deinit(struct mxc_dispdrv_handle *disp)
 	/*TODO*/
 }
 
-int lcdif_setup(struct mxc_dispdrv_handle *disp, struct fb_info *fbinfo)
-{
-	struct mxc_lcdif_data *lcdif = mxc_dispdrv_getdata(disp);
-	struct mxc_lcd_platform_data *plat_data
-			= lcdif->pdev->dev.platform_data;
-
-	mdelay(100);
-	if (gpio_is_valid(plat_data->lcd_enable_gpio))
-		gpio_set_value(plat_data->lcd_enable_gpio, 1);
-
-	return 0;
-}
-
 /* display driver enable function for extension */
 int lcdif_enable (struct mxc_dispdrv_handle *disp, struct fb_info *fbinfo)
 {
@@ -144,7 +131,10 @@ int lcdif_enable (struct mxc_dispdrv_handle *disp, struct fb_info *fbinfo)
 	if (gpio_is_valid(plat_data->backlight_enable_gpio))
 		gpio_set_value(plat_data->backlight_enable_gpio, 0);
 
-	mdelay(150);
+	if (gpio_is_valid(plat_data->lcd_enable_gpio))
+		gpio_set_value(plat_data->lcd_enable_gpio, 1);
+
+	mdelay(400);
 	if (gpio_is_valid(plat_data->backlight_enable_gpio))
 		gpio_set_value(plat_data->backlight_enable_gpio, 1);
 
@@ -173,7 +163,6 @@ static struct mxc_dispdrv_driver lcdif_drv = {
 	.deinit	= lcdif_deinit,
 	.enable = lcdif_enable,
 	.disable = lcdif_disable,
-	.setup  = lcdif_setup,
 };
 
 static int lcd_get_of_property(struct platform_device *pdev,
