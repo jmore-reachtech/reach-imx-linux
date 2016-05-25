@@ -62,4 +62,16 @@
 
 &tsc2046 {
 	status = "okay";
+	ti,x-min = /bits/ 16 <150>;
+	ti,x-max = /bits/ 16 <3830>;
+	ti,y-min = /bits/ 16 <190>;
+	ti,y-max = /bits/ 16 <3830>;
+	ti,vref-delay-usecs = /bits/ 16 <450>;
+	ti,x-plate-ohms = /bits/ 16 <450>;
+	ti,y-plate-ohms = /bits/ 16 <250>;
+	ti,pressure-max = /bits/ 16 <15000>;
+	ti,debounce-rep = /bits/ 16 <0>;
+	ti,debounce-tol = /bits/ 16 <65535>;
+	ti,debounce-max = /bits/ 16 <1>;
+	linux,wakeup;
 };
