@@ -161,6 +161,7 @@ dtb-$(CONFIG_ARCH_MXC) += \
 	imx6dl-g2h-12.dtb \
 	imx6dl-g2h-13.dtb \
 	imx6dl-g2h-14.dtb \
+	imx6dl-g2h-15.dtb \
 	imx6dl-hummingboard.dtb \
 	imx6dl-sabreauto.dtb \
 	imx6dl-sabreauto-flexcan1.dtb \
