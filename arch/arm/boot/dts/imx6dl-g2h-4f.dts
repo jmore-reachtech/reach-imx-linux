@@ -1,0 +1,75 @@
+/*
+ * Copyright 2013 Freescale Semiconductor, Inc.
+ *
+ * Author: Fabio Estevam <fabio.estevam@freescale.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+#include "imx6qdl-g2h.dtsi"
+
+/ {
+	model = "Reach Tech i.MX6 Solo G2H Board";
+	compatible = "reach,imx6dl-g2h", "fsl,imx6dl";
+
+	/*
+	 * Panel: 7" VGA
+	 * Touch: TSC2046
+	 * Display Interface: Parallel
+	 */
+
+	mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "lcd";
+		interface_pix_fmt = "RGB666";
+		mode_str ="WVGA-GH2";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+	};
+
+       lcd@0 {
+		compatible = "fsl,lcd";
+		ipu_id = <0>;
+		disp_id = <0>;
+		default_ifmt = "RGB666";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ipu1>;
+		lcd-enable-gpio = <&gpio2 11 0>;
+		backlight-enable-gpio = <&gpio2 8 0>;
+		status = "okay";
+	};
+};
+
+&epdc {
+	status = "disabled";
+};
+
+&flexcan1 {
+	status = "okay";
+};
+
+&tsc2046 {
+	status = "okay";
+    ti,settle-delay-usec = /bits/ 16 <100>; 
+	ti,vref-delay-usecs = /bits/ 16 <450>;
+    ti,keep-vref-on = /bits/ 16 <1>;
+	ti,x-plate-ohms = /bits/ 16 <450>;
+	ti,y-plate-ohms = /bits/ 16 <250>;
+	ti,pressure-max = /bits/ 16 <512>;
+	ti,debounce-rep = /bits/ 16 <4>;
+	ti,debounce-tol = /bits/ 16 <10>;
+	ti,debounce-max = /bits/ 16 <10>;
+	linux,wakeup;
+};
+
+&spiflash {
+	status = "okay";
+};
