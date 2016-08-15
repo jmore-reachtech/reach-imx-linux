@@ -158,6 +158,13 @@
 
 };
 
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_i2c3_3>;
+	status = "okay";
+};
+
 /*
 For reference here, the PAD_CTL bitfield definition from
 Documentation/devicetree/bindings/pinctrl/fsl,imx6q-pinctrl.txt
