@@ -48,6 +48,12 @@
 	};
 };
 
+&i2c1 {
+	codec: sgtl5000@0a {
+		status = "okay";
+	};
+};
+
 &epdc {
 	status = "disabled";
 };
