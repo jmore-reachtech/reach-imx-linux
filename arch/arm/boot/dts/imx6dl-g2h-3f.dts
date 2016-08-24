@@ -46,12 +46,20 @@
 		backlight-enable-gpio = <&gpio2 8 0>;
 		status = "okay";
 	};
+
+    sound {
+		status = "okay";
+	};
 };
 
 &i2c1 {
 	codec: sgtl5000@0a {
 		status = "okay";
 	};
+};
+
+&ssi1 {
+	status = "okay";
 };
 
 &epdc {
