@@ -318,6 +318,16 @@ reference manual.
 		};
 	};
 
+    uart4 {
+		pinctrl_uart4_2: uart4grp-2 {
+			fsl,pins = <
+                MX6QDL_PAD_CSI0_DAT12__UART4_TX_DATA 0x1b0b1
+                MX6QDL_PAD_CSI0_DAT16__UART4_RTS_B 0x1b0b1
+                MX6QDL_PAD_KEY_ROW0__UART4_RX_DATA 0x1b0b1
+			>;
+		};
+	};
+
 	uart5 {
 		pinctrl_uart5_1: uart5grp-1 {
 			fsl,pins = <
@@ -374,6 +384,12 @@ reference manual.
 &uart2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart2_3>;
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4_2>;
 	status = "okay";
 };
 
