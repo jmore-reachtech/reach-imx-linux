@@ -107,3 +107,11 @@
     ti,debounce-max = /bits/ 16 <10>;
     status = "okay";
 };
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	uart-has-rs485-half-duplex;
+	rs485-mode = <1>;
+	status = "okay";
+};
