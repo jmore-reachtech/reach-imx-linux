@@ -1,0 +1,81 @@
+/*
+ * Copyright 2013 Freescale Semiconductor, Inc.
+ *
+ * Author: Fabio Estevam <fabio.estevam@freescale.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "imx6dl.dtsi"
+#include "imx6dl-g2h.dtsi"
+
+/ {
+    /*
+     * Panel: 7" VGA
+     * Touch: Evervision
+     * Display Interface: Parallel
+     */
+	model = "Hawthorne i.MX6 Solo Dual Lite Board";
+	compatible = "reach,imx6sdl-hawthorne", "fsl,imx6dl";
+
+    aliases {
+		mxcfb0      = &mxcfb1;
+	};
+
+   mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "lcd";
+        interface_pix_fmt = "RGB666";
+		mode_str ="CLAA-WVGA";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "okay";
+    };
+
+       lcd@0 {
+                compatible = "fsl,lcd";
+                ipu_id = <0>;
+                disp_id = <0>;
+                default_ifmt = "RGB666";
+                pinctrl-names = "default";
+                pinctrl-0 = <&pinctrl_ipu1_5>;
+                lcd-enable-gpio = <&gpio2 11 0>;
+                backlight-enable-gpio = <&gpio2 8 0>;
+                status = "okay";
+    };
+
+};
+
+&spiflash {
+        status = "okay";
+};
+
+&dipswitch {
+    status = "okay";
+};
+
+&flexcan1 {
+        status = "okay";
+};
+
+&epdc {
+        status = "disabled";
+};
+
+&evervision {
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4_2>;
+	uart-has-rs485-half-duplex;
+	rs485-mode = <1>;
+	status = "okay";
+};
