@@ -71,8 +71,3 @@
 &evervision {
 	status = "okay";
 };
-
-&uart5 {
-    status = "disabled";
-};
-

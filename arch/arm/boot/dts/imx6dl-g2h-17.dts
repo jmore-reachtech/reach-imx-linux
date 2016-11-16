@@ -71,8 +71,3 @@
 &tsc2046 {
 	status = "okay";
 };
-
-&uart5 {
-    status = "disabled";
-};
-
