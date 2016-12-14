@@ -78,7 +78,6 @@
 &uart4 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart4_2>;
-	uart-has-rs485-half-duplex;
-	rs485-mode = <1>;
+	fsl,uart-has-rtscts;
 	status = "okay";
 };
