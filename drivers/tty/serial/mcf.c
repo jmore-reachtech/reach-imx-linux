@@ -440,8 +440,10 @@ static int mcf_verify_port(struct uart_port *port, struct serial_struct *ser)
 static void mcf_config_rs485(struct uart_port *port, struct serial_rs485 *rs485)
 {
 	struct mcf_uart *pp = container_of(port, struct mcf_uart, port);
+	unsigned long flags;
 	unsigned char mr1, mr2;
 
+	spin_lock_irqsave(&port->lock, flags);
 	/* Get mode registers */
 	mr1 = readb(port->membase + MCFUART_UMR);
 	mr2 = readb(port->membase + MCFUART_UMR);

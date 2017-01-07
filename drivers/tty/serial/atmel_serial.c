@@ -211,6 +211,9 @@ void atmel_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf)
 {
 	struct atmel_uart_port *atmel_port = to_atmel_uart_port(port);
 	unsigned int mode;
+	unsigned long flags;
+
+	spin_lock_irqsave(&port->lock, flags);
 
 	/* Disable interrupts */
 	UART_PUT_IDR(port, atmel_port->tx_done_mask);
@@ -1799,8 +1802,6 @@ static int atmel_serial_probe(struct platform_device *pdev)
 			goto err_alloc_ring;
 		port->rx_ring.buf = data;
 	}
-
-	rs485_enabled = port->uart.rs485.flags & SER_RS485_ENABLED;
 
 	ret = uart_add_one_port(&atmel_uart, &port->uart);
 	if (ret)
