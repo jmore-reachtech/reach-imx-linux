@@ -1,4 +1,7 @@
 /*
+ * 2015(C) Marco Cavallini - KOAN sas - RS485 support - set in DT the RTS GPIO
+ * Based on the patch by Aurelien Bouin
+ *
  *  Driver for Motorola IMX serial ports
  *
  *  Based on drivers/char/serial.c, by Linus Torvalds, Theodore Ts'o.
@@ -46,9 +49,11 @@
 #include <linux/rational.h>
 #include <linux/slab.h>
 #include <linux/of.h>
+#include <linux/of_gpio.h>
 #include <linux/of_device.h>
 #include <linux/io.h>
 #include <linux/dma-mapping.h>
+#include <linux/gpio.h>
 
 #include <asm/irq.h>
 #include <linux/platform_data/serial-imx.h>
@@ -226,6 +231,7 @@ struct imx_port {
 	unsigned int		tx_bytes;
 	unsigned int		dma_tx_nents;
 	wait_queue_head_t	dma_wait;
+	struct serial_rs485	rs485;
 };
 
 struct imx_port_ucrs {
@@ -239,6 +245,59 @@ struct imx_port_ucrs {
 #else
 #define USE_IRDA(sport)	(0)
 #endif
+
+static void imx_rs485_stop_tx(struct imx_port *sport)
+{
+	if ((sport->rs485.padding[0] > 0) && (sport->rs485.flags & SER_RS485_ENABLED))
+		gpio_set_value(sport->rs485.padding[0], 0);
+}
+
+static void imx_rs485_start_tx(struct imx_port *sport)
+{
+	if ((sport->rs485.padding[0] > 0) && (sport->rs485.flags & SER_RS485_ENABLED))
+		gpio_set_value(sport->rs485.padding[0], 1);
+}
+
+void imx_config_rs485(struct imx_port *sport)
+{
+	if ((sport->rs485.padding[0] > 0) && (sport->rs485.flags & SER_RS485_ENABLED)) {
+		if (gpio_is_valid(sport->rs485.padding[0])) {
+			gpio_request(sport->rs485.padding[0], "rts-gpios");
+			gpio_direction_output(sport->rs485.padding[0], 0);
+		}
+	}
+
+	if (sport->have_rtscts) {
+		writel(readl(sport->port.membase + UCR2) & ~UCR2_CTSC,
+					sport->port.membase + UCR2);
+		gpio_set_value(sport->rs485.padding[0], 0);
+	}
+}
+
+static int imx_ioctl(struct uart_port *port, unsigned int cmd, unsigned long arg)
+{
+	struct imx_port *sport = (struct imx_port *)port;
+	u32 gpio = 0 ;
+
+	switch (cmd) {
+	case TIOCSRS485:
+		gpio = sport->rs485.padding[0];
+		if (copy_from_user(&(sport->rs485), (struct serial_rs485 *) arg, sizeof(struct serial_rs485)))
+			return -EFAULT;
+		sport->rs485.padding[0] = gpio;
+		imx_config_rs485(sport);
+		break;
+
+	case TIOCGRS485:
+		if (copy_to_user((struct serial_rs485 *) arg, &(sport->rs485), sizeof(struct serial_rs485)))
+			return -EFAULT;
+		break;
+
+	default:
+		return -ENOIOCTLCMD;
+	}
+	return 0;
+}
 
 static struct imx_uart_data imx_uart_devdata[] = {
 	[IMX1_UART] = {
@@ -564,6 +623,15 @@ static void imx_start_tx(struct uart_port *port)
 	struct imx_port *sport = (struct imx_port *)port;
 	unsigned long temp;
 
+	if (sport->rs485.flags & SER_RS485_ENABLED)
+	{
+		imx_rs485_start_tx(sport);
+		/* transmit complete interrupt enable the receiver */
+		temp = readl(sport->port.membase + UCR4);
+		writel(temp | UCR4_TCEN, sport->port.membase + UCR4);
+	}
+
+
 	if (USE_IRDA(sport)) {
 		/* half duplex in IrDA mode; have to disable receive mode */
 		temp = readl(sport->port.membase + UCR4);
@@ -745,6 +813,27 @@ static irqreturn_t imx_int(int irq, void *dev_id)
 	struct imx_port *sport = dev_id;
 	unsigned int sts;
 	unsigned int sts2;
+	unsigned int sr1,sr2,cr1,cr2,cr3,cr4;
+
+	sr1 = readl(sport->port.membase + USR1);
+	sr2 = readl(sport->port.membase + USR2);
+	cr1 = readl(sport->port.membase + UCR1);
+	cr2 = readl(sport->port.membase + UCR2);
+	cr3 = readl(sport->port.membase + UCR3);
+	cr4 = readl(sport->port.membase + UCR4);
+
+	if (sport->rs485.flags & SER_RS485_ENABLED)
+	{
+		/* if RS485 test if the transmit is complete */
+		if ((cr4 & UCR4_TCEN) && (sr2 & USR2_TXDC))
+		{
+			unsigned long temp;
+			imx_rs485_stop_tx(sport);
+			/* Transmit complete interrupt disabled */
+			temp = readl(sport->port.membase + UCR4);
+			writel(temp & ~UCR4_TCEN, sport->port.membase + UCR4);
+		}
+	}
 
 	sts = readl(sport->port.membase + USR1);
 
@@ -1459,6 +1548,10 @@ imx_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	if (sport->dma_is_inited && !sport->dma_is_enabled)
 		imx_enable_dma(sport);
+
+	if (sport->rs485.flags & SER_RS485_ENABLED)
+		   imx_config_rs485(sport);
+
 	spin_unlock_irqrestore(&sport->port.lock, flags);
 }
 
@@ -1614,6 +1707,7 @@ static struct uart_ops imx_pops = {
 	.break_ctl	= imx_break_ctl,
 	.startup	= imx_startup,
 	.shutdown	= imx_shutdown,
+	.ioctl          = imx_ioctl,
 	.flush_buffer	= imx_flush_buffer,
 	.set_termios	= imx_set_termios,
 	.type		= imx_type,
@@ -1901,6 +1995,13 @@ static int serial_imx_probe_dt(struct imx_port *sport,
 
 	if (of_get_property(np, "fsl,dte-mode", NULL))
 		sport->dte_mode = 1;
+
+	ret = of_get_named_gpio(np, "rts-gpios", 0);
+	if (ret > 0 && gpio_is_valid(ret)) {
+		sport->rs485.padding[0] = ret;
+		gpio_request(sport->rs485.padding[0], "rts-gpio");
+		gpio_direction_output(sport->rs485.padding[0], 0);
+	}
 
 	sport->devdata = of_id->data;
 
