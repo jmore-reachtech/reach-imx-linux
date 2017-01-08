@@ -75,8 +75,5 @@
 };
 
 &uart4 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart4_2>;
-	fsl,uart-has-rtscts;
-	status = "okay";
+	rts-gpios = <&gpio6 2 1>;
 };
