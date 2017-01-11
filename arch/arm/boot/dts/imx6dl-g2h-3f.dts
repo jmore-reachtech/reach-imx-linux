@@ -79,9 +79,5 @@
 };
 
 &uart4 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart4>;
-	uart-has-rs485-half-duplex;
-	rs485-mode = <1>;
-	status = "okay";
+	rts-gpios = <&gpio6 2 1>;
 };
