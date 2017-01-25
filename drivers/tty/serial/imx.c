@@ -2000,7 +2000,7 @@ static int serial_imx_probe_dt(struct imx_port *sport,
 	if (ret > 0 && gpio_is_valid(ret)) {
 		sport->rs485.padding[0] = ret;
 		gpio_request(sport->rs485.padding[0], "rts-gpio");
-		gpio_direction_output(sport->rs485.padding[0], 0);
+		gpio_direction_output(sport->rs485.padding[0], 1);
 	}
 
 	sport->devdata = of_id->data;
