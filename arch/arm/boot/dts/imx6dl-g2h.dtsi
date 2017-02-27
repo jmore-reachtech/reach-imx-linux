@@ -126,7 +126,7 @@
         reg = <0x3E>;
 		interrupt-parent = <&gpio6>;
        	interrupts = <16 0>;
-        status = "okay";
+        status = "disabled";
     };
 
 	evervision: touch@38 {
