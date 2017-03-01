@@ -69,3 +69,7 @@
 &flexcan1 {
 	status = "okay";
 };
+
+&uart4 {
+	rts-gpios = <&gpio6 2 1>;
+};
