@@ -50,6 +50,10 @@
 		status = "okay";
     };
 
+    sound: sound@0 {
+        status = "okay";
+    };
+
 };
 
 &tsc2046 {
@@ -75,3 +79,10 @@
 &uart4 {
 	rts-gpios = <&gpio6 2 1>;
 };
+
+&i2c1 {
+    codec: sgtl5000@0a {
+        status = "okay";
+    };
+};
+

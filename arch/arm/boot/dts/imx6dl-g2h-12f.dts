@@ -38,6 +38,11 @@
 		late_init = <0>;
 		status = "okay";
     };
+
+    sound: sound@0 {
+        status = "okay";
+    };
+
 };
 
 &dipswitch {
@@ -78,3 +83,10 @@
 &uart4 {
 	rts-gpios = <&gpio6 2 1>;
 };
+
+&i2c1 {
+    codec: sgtl5000@0a {
+        status = "okay";
+    };
+};
+

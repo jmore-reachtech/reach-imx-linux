@@ -60,14 +60,6 @@
 	status = "okay";
 };
 
-&dipswitch {
-    status = "okay";
-};
-
-&flexcan1 {
-	status = "okay";
-};
-
 &epdc {
 	status = "disabled";
 };

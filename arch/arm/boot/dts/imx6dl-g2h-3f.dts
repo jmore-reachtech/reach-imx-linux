@@ -38,16 +38,20 @@
 		status = "okay";
     };
 
-       lcd@0 {
-                compatible = "fsl,lcd";
-                ipu_id = <0>;
-                disp_id = <0>;
-                default_ifmt = "RGB666";
-                pinctrl-names = "default";
-                pinctrl-0 = <&pinctrl_ipu1_5>;
-                lcd-enable-gpio = <&gpio2 11 0>;
-                backlight-enable-gpio = <&gpio2 8 0>;
-                status = "okay";
+    lcd@0 {
+        compatible = "fsl,lcd";
+        ipu_id = <0>;
+        disp_id = <0>;
+        default_ifmt = "RGB666";
+        pinctrl-names = "default";
+        pinctrl-0 = <&pinctrl_ipu1_5>;
+        lcd-enable-gpio = <&gpio2 11 0>;
+        backlight-enable-gpio = <&gpio2 8 0>;
+        status = "okay";
+    };
+
+    sound: sound@0 {
+        status = "okay";
     };
 
 };
@@ -75,3 +79,10 @@
 &uart4 {
 	rts-gpios = <&gpio6 2 1>;
 };
+
+&i2c1 {
+    codec: sgtl5000@0a {
+        status = "okay";
+    };
+};
+
