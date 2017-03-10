@@ -159,7 +159,7 @@ static int __init imx6q_audio_fixup(void)
     struct device_node *np;
     int audio;
 
-    np = of_find_node_by_path("/sound");
+    np = of_find_node_by_path("/sound@0");
     if (!np) {
         pr_err("sound of node not found! \n");
         return -ENODEV;
