@@ -62,6 +62,8 @@
 		ssi-controller = <&ssi1>;
 		audio-codec = <&codec>;
 		audio-routing =
+			"MIC_IN", "Mic Jack",
+			"Mic Jack", "Mic Bias",
 			"Headphone Jack", "HP_OUT";
 		mux-int-port = <1>;
 		mux-ext-port = <3>;
@@ -152,6 +154,7 @@
 		reg = <0x0a>;
 		clocks = <&clks 201>;
 		VDDA-supply = <&reg_3p3v>;
+		VDDD-supply = <&reg_3p3v>;
 		VDDIO-supply = <&reg_3p3v>;
         status = "disabled";
 	};
