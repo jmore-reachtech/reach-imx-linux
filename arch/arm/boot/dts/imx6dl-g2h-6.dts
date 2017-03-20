@@ -38,6 +38,10 @@
 		late_init = <0>;
 		status = "okay";
     };
+
+    sound: sound@0 {
+        status = "okay";
+    };
 };
 
 &dipswitch {
@@ -53,10 +57,27 @@
 	sec_disp_id = <0>;
 	lvds_en_gpio = <&gpio2 8 1>;
 	disp_en_gpio = <&gpio2 11 1>;
-        channel_mapping = "SPWG";
+    channel_mapping = "SPWG";
 	status = "okay";
 };
 
+&spiflash {
+	status = "okay";
+};
+
+&flexcan1 {
+	status = "okay";
+};
+
+&uart4 {
+	rts-gpios = <&gpio6 2 1>;
+};
+
+&i2c1 {
+    codec: sgtl5000@0a {
+        status = "okay";
+    };
+};
 
 &epdc {
 	status = "disabled";
