@@ -89,6 +89,11 @@
         status = "disabled";
     };
 
+    buzzer {
+        compatible = "pwm-beeper";
+        pwms = <&pwm1 0 5000000>;
+    };
+
 	v4l2_out {
 		compatible = "fsl,mxc_v4l2_output";
 		status = "okay";
@@ -369,12 +374,17 @@ reference manual.
 	status = "okay";
 };
 
+&pwm1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_pwm1_1>;
+	status = "okay";
+};
+
 &pwm3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm3_1>;
 	status = "okay";
 };
-
 &ssi1 {
 	fsl,mode = "i2s-slave";
 	status = "okay";
