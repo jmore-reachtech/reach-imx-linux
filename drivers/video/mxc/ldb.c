@@ -36,6 +36,7 @@
 #include <linux/of_gpio.h>
 #include <linux/ipu.h>
 #include <linux/mxcfb.h>
+#include <linux/delay.h>
 #include <linux/regulator/consumer.h>
 #include <linux/spinlock.h>
 #include <linux/of_device.h>
@@ -110,7 +111,7 @@ struct fsl_mxc_ldb_platform_data {
 	int sec_ipu_id;
 	int sec_disp_id;
 	
-	int lvds_en_gpio;
+	int backlight_en_gpio;
 	int disp_en_gpio;
 #define LDB_CHANNEL_MAPPING_JEIDA 1
 #define LDB_CHANNEL_MAPPING_SPWG  2
@@ -305,7 +306,7 @@ static int ldb_get_of_property(struct platform_device *pdev,
 	int err;
 	u32 ipu_id, disp_id;
 	u32 sec_ipu_id, sec_disp_id;
-	u32 disp_en_gpio, lvds_en_gpio;
+	u32 disp_en_gpio, bk_en_gpio;
 	char *mode;
 	char *mapping;
 	u32 ext_ref;
@@ -356,13 +357,13 @@ static int ldb_get_of_property(struct platform_device *pdev,
 	    dev_dbg(&pdev->dev, "request disp enable gpio fail \n");
 		return err;
 	}
-	lvds_en_gpio = of_get_named_gpio(np, "lvds_en_gpio", 0);
-	if (!gpio_is_valid(lvds_en_gpio)) {
-		dev_dbg(&pdev->dev, "get of property lvds_en_gpio fail\n");
+	bk_en_gpio = of_get_named_gpio(np, "backlight_en_gpio", 0);
+	if (!gpio_is_valid(bk_en_gpio)) {
+		dev_dbg(&pdev->dev, "get of property backlight_en_gpio fail\n");
 		return -ENODEV;
 	}
-	err = devm_gpio_request_one(dev, lvds_en_gpio, GPIOF_OUT_INIT_HIGH,
-					"lvds_en_gpio");
+	err = devm_gpio_request_one(dev, bk_en_gpio, GPIOF_OUT_INIT_LOW,
+					"backlight_en_gpio");
 	if (err < 0) {
 	    dev_dbg(&pdev->dev, "request lvds enable gpio fail \n");
 		return err;
@@ -375,7 +376,7 @@ static int ldb_get_of_property(struct platform_device *pdev,
 	plat_data->disp_id = disp_id;
 	plat_data->sec_ipu_id = sec_ipu_id;
 	plat_data->sec_disp_id = sec_disp_id;
-	plat_data->lvds_en_gpio = lvds_en_gpio;
+	plat_data->backlight_en_gpio = bk_en_gpio;
 	plat_data->disp_en_gpio = disp_en_gpio;
 
 	return err;
@@ -864,6 +865,7 @@ static void ldb_disp_deinit(struct mxc_dispdrv_handle *disp)
 static int ldb_disp_enable(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 {
     struct ldb_data *ldb = mxc_dispdrv_getdata(disp);
+    struct fsl_mxc_ldb_platform_data *plat_data = ldb->pdev->dev.platform_data;
 	int index;
 	uint32_t reg;
 
@@ -874,13 +876,30 @@ static int ldb_disp_enable(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
     reg = readl(ldb->control_reg);
     reg |= ldb->setting[index].ch_val;
     writel(reg, ldb->control_reg);
-    
+
+    if (gpio_is_valid(plat_data->backlight_en_gpio)) {
+        pr_debug("%s: enable backlight gpio \n", __func__);
+        gpio_set_value(plat_data->backlight_en_gpio, 0);
+	}
+
+	if (gpio_is_valid(plat_data->disp_en_gpio)) {
+        pr_debug("%s: enable disp gpio \n", __func__);
+        gpio_set_value(plat_data->disp_en_gpio, 1);
+	}
+
+	mdelay(300);
+	if (gpio_is_valid(plat_data->backlight_en_gpio)) {
+        pr_debug("%s: enable backlight gpio \n", __func__);
+        gpio_set_value(plat_data->backlight_en_gpio, 1);
+	}
+
     return 0;
 }
 
 static void ldb_disp_disable(struct mxc_dispdrv_handle *disp, struct fb_info *fbi)
 {
 	struct ldb_data *ldb = mxc_dispdrv_getdata(disp);
+    struct fsl_mxc_ldb_platform_data *plat_data = ldb->pdev->dev.platform_data;
 	int index;
 	uint32_t reg;
 
@@ -891,6 +910,17 @@ static void ldb_disp_disable(struct mxc_dispdrv_handle *disp, struct fb_info *fb
 	reg = readl(ldb->control_reg);
 	reg &= ~ldb->setting[index].ch_mask;
 	writel(reg, ldb->control_reg);
+
+    if (gpio_is_valid(plat_data->backlight_en_gpio)) {
+        pr_debug("%s: disable backlight gpio \n", __func__);
+        gpio_set_value(plat_data->backlight_en_gpio, 0);
+	}
+
+	if (gpio_is_valid(plat_data->disp_en_gpio)) {
+        pr_debug("%s: disable disp gpio \n", __func__);
+        gpio_set_value(plat_data->disp_en_gpio, 0);
+	}
+	mdelay(100);
 }
 
 static struct mxc_dispdrv_driver ldb_drv = {
