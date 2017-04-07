@@ -476,7 +476,7 @@ reference manual.
 		};
 
 		mtd3@000E0000 {
-			label = "kernel";
+			label = "custom";
 			reg = <0x000E0000 0x00F20000>;
 		};
 	};
@@ -516,12 +516,16 @@ reference manual.
 	status = "ok";
 	
 	partition@0 {
-		label = "rootfs";
-		reg = <0x0000000 0x18000000>;
+		label = "dtb";
+		reg = <0x0000000 0x0080000>;
 	};
 	partition@1 {
-		label = "appfs";
-		reg = <0x18000000 0x8000000>;
+		label = "kernel";
+		reg = <0x0080000 0x0A00000>;
+	};
+	partition@2 {
+		label = "rootfs";
+		reg = <0x0A80000 0x1F580000>;
 	};
 };
 
