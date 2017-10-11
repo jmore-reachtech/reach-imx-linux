@@ -58,7 +58,7 @@
 	sec_disp_id = <0>;
 	backlight_en_gpio = <&gpio2 8 0>;
 	disp_en_gpio = <&gpio2 11 0>;
-    channel_mapping = "JEIDA";
+    channel_mapping = "SPWG";
 	status = "okay";
 };
 
