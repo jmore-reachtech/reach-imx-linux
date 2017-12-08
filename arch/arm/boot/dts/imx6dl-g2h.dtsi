@@ -137,12 +137,13 @@
         status = "disabled";
     };
 
-	evervision: touch@38 {
-		compatible = "evervision";
+	evervision_ts: evr_ft5x06_ts@38 {
+		compatible = "evr-ft5x06-ts";
 		reg = <0x38>;
 		interrupt-parent = <&gpio4>;
        	interrupts = <5 0>;
 		status = "disabled";
+        reset-gpio = <&gpio7 8 0>;
         swap-x-y = <1>;
         max-x = <2047>;
         max-y = <2047>;

@@ -60,6 +60,6 @@
         status = "disabled";
 };
 
-&evervision {
+&evervision_ts {
 	status = "okay";
 };

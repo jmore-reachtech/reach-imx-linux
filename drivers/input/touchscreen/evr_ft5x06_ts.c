@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Simon Budig, <simon.budig@kernelconcepts.de>
+ * Copyright (C) 2017 Jeff Horn, <jeff.horn@reachtech.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -16,319 +16,284 @@
  */
 
 /*
- * This is a driver for the EDT "Polytouch" family of touch controllers
+ * This is a driver for the "Evervision" family of touch controllers
  * based on the FocalTech FT5x06 line of chips.
  *
- * Development of this driver has been sponsored by Glyn:
- *    http://www.glyn.com/Products/Displays
  */
 
+//#define DEBUG
+
 #include <linux/module.h>
-#include <linux/ratelimit.h>
-#include <linux/interrupt.h>
-#include <linux/input.h>
+#include <linux/init.h>
 #include <linux/i2c.h>
-#include <linux/uaccess.h>
-#include <linux/delay.h>
 #include <linux/slab.h>
+#include <linux/interrupt.h>
+#include <linux/wait.h>
+#include <linux/io.h>
 #include <linux/gpio.h>
-#include <linux/input/mt.h>
-#include <linux/fs.h> 
+#include <linux/of_gpio.h>
+#include <linux/proc_fs.h>
+#include <linux/delay.h>
+#include <linux/input.h>
+#include <linux/i2c/ft5x06_ts.h>
 
-#define EDT_NAME_LEN    23
-#define USE_ABS_MT
-#define MAX_TOUCHES     5
-#define X_RES           0x7FF
-#define Y_RES           0x7FF
+#define TS_NAME "evr-ft5x06-ts"
 
-static const char *client_name = "evr-ft5x06";
-
-struct evr_ft5x06_ts_data {
-	struct i2c_client   *client;
-	struct input_dev    *input;
-    int			        irq;
-	u16                 num_x;
-	u16                 num_y;
-};
+#define FTS_POINT_UP		0x01
+#define FTS_POINT_DOWN		0x00
+#define FTS_POINT_CONTACT	0x02
 
 struct point {
-	int	x;
-	int	y;
-	int	id;
+	int x;
+	int y;
+	int id;
 };
 
-static int calibration[7] = {
-   	65536,0,0,
-	0,65536,0,
-	65536 
+struct ts_event {
+	u16 au16_x[CFG_MAX_TOUCH_POINTS];			/*x coordinate */
+	u16 au16_y[CFG_MAX_TOUCH_POINTS];			/*y coordinate */
+	u8 au8_touch_event[CFG_MAX_TOUCH_POINTS];	/*touch event: 
+													0 -- down; 1-- contact; 2 -- contact */
+	u8 au8_finger_id[CFG_MAX_TOUCH_POINTS];		/*touch ID */
+	u16 pressure;
+	u8 touch_point;
 };
-module_param_array(calibration, int, NULL, S_IRUGO | S_IWUSR);
 
-static int swap_x_y = 0;
-module_param(swap_x_y, int, S_IRUGO | S_IWUSR);
-
-static void translate(int *px, int *py)
-{
-	int x, y, x1, y1;
-	if (calibration[6]) {
-		x1 = *px;
-		y1 = *py;
-
-		x =  (calibration[0] * x1) + (calibration[1] * y1) + calibration[2];
-		x /= calibration[6];
-		if (x < 0)
-			x = 0;
-		y =  (calibration[3] * x1) + (calibration[4] * y1) + calibration[5];
-		y /= calibration[6];
-		if (y < 0)
-			y = 0;
-        if(swap_x_y) {
-		    *px = y ;
-		    *py = x ;
-        } else {
-		    *px = x ;
-		    *py = y ;
-        }
-	}
-}
-
-static inline void evr_ft5x06_ts_evt_add(struct evr_ft5x06_ts_data *ts,
-			      unsigned touches, struct point *p)
-{
-	struct input_dev *idev = ts->input;
-	int i;
-	if (!touches) {
-		/* send release to user space. */
-#ifdef USE_ABS_MT
-		input_event(idev, EV_ABS, ABS_MT_TOUCH_MAJOR, 0);
-		input_mt_sync(idev);
-#else
-		input_report_abs(idev, ABS_PRESSURE, 0);
-		input_report_key(idev, BTN_TOUCH, 0);
-		input_sync(idev);
+struct evr_ft5x0x_ts_data {
+	unsigned int irq;
+	unsigned int x_max;
+	unsigned int y_max;
+	unsigned int reset_gpio;
+	struct i2c_client *client;
+	struct input_dev *input_dev;
+#ifdef CONFIG_PM
+	struct early_suspend *early_suspend;
 #endif
+};
+
+int evr_ft5x0x_i2c_read(struct i2c_client *client, char *w_buf, int w_len, char *r_buf, int r_len)
+{
+	int ret;
+
+	if (w_len > 0) {
+		struct i2c_msg msgs[] = {
+			{
+				.addr 	= client->addr,
+				.flags 	= 0,
+				.len 	= w_len,
+				.buf 	= w_buf,
+			},
+			{
+				.addr 	= client->addr,
+				.flags 	= I2C_M_RD,
+				.len 	= r_len,
+				.buf 	= r_buf,
+			},
+		};
+		
+		ret = i2c_transfer(client->adapter, msgs, 2);
+		if (ret < 0) {
+			dev_err(&client->dev, "f%s: i2c read error.\n",__func__);
+		}
 	} else {
-		for (i = 0; i < touches; i++) {
-			translate(&p[i].x, &p[i].y);
-#ifdef USE_ABS_MT
-            pr_debug("x=%d, y=%d, t=%d\n",p[i].x, p[i].y, p[i].id);
-			input_event(idev, EV_ABS, ABS_MT_POSITION_X, p[i].x);
-			input_event(idev, EV_ABS, ABS_MT_POSITION_Y, p[i].y);
-			input_event(idev, EV_ABS, ABS_MT_TRACKING_ID, p[i].id);
-			input_event(idev, EV_ABS, ABS_MT_TOUCH_MAJOR, 1);
-			input_mt_sync(idev);
-#else
-			input_report_abs(idev, ABS_X, p[i].x);
-			input_report_abs(idev, ABS_Y, p[i].y);
-			input_report_abs(idev, ABS_PRESSURE, 1);
-			input_report_key(idev, BTN_TOUCH, 1);
-			input_sync(idev);
-#endif
+		struct i2c_msg msgs[] = {
+			{
+				.addr 	= client->addr,
+				.flags 	= I2C_M_RD,
+				.len 	= r_len,
+				.buf 	= r_buf,
+			},
+		};
+		
+		ret = i2c_transfer(client->adapter, msgs, 1);
+		if (ret < 0) {
+			dev_err(&client->dev, "f%s: i2c read error.\n",__func__);
 		}
 	}
-#ifdef USE_ABS_MT
-	input_sync(idev);
-#endif
+
+	return ret;
 }
 
-static irqreturn_t evr_ft5x06_ts_isr(int irq, void *dev_id)
+static irqreturn_t evr_ft5x0x_ts_interrupt(int irq, void *dev_id)
 {
-	struct evr_ft5x06_ts_data *ts = dev_id;
-	int ret;
-    struct point points[MAX_TOUCHES];
-    unsigned char buf[3+(6*MAX_TOUCHES)];
+	struct evr_ft5x0x_ts_data *ts = dev_id;
+	int ret = 0;
+	int mode, points,contact, x, y;
+	u8 buf[POINT_READ_BUF] = { 0 };
 
-    unsigned char startch[1] = { 0 };
-	struct i2c_msg readpkt[2] = {
-		{ts->client->addr, 0, 1, startch},
-		{ts->client->addr, I2C_M_RD, sizeof(buf), buf}
-	};
-	int touches = 0 ;
-
-    ret = i2c_transfer(ts->client->adapter, readpkt,
-	                    ARRAY_SIZE(readpkt));
-	if (ret != ARRAY_SIZE(readpkt)) {
-	    pr_warn(KERN_WARNING "%s: i2c_transfer failed\n",
-		        client_name);
-	} else {
-        int i;
-        unsigned char *p = buf+3;
-
-        touches = buf[2];
-        if(touches > MAX_TOUCHES) {
-	        pr_warn(KERN_WARNING "%s: invalid touch count %d\n",
-		        client_name, touches);
-        } else {
-            for (i = 0; i < touches; i++) {
-			    points[i].x  = (((p[0] & 0x0F) << 8) | p[1]) & X_RES;
-				points[i].y  = (((p[2] & 0x0F) << 8) | p[3]) & Y_RES;
-				points[i].id = (p[2] >> 4);
-				p += 6;
-			}
-            evr_ft5x06_ts_evt_add(ts, touches, points); 
-        }
-    }
-
-    return IRQ_HANDLED;
-}
-
-static int evr_ft5x06_ts_register(struct evr_ft5x06_ts_data *ts)
-{
-	struct input_dev *idev;
-	idev = input_allocate_device();
-	if (idev == NULL)
-		return -ENOMEM;
-
-	ts->input = idev;
-	idev->name = client_name ;
-	idev->id.product = ts->client->addr;
-
-	__set_bit(EV_ABS, idev->evbit);
-	__set_bit(EV_KEY, idev->evbit);
-	__set_bit(BTN_TOUCH, idev->keybit);
-
-#ifdef USE_ABS_MT
-	input_set_abs_params(idev, ABS_MT_POSITION_X, 0, ts->num_x, 0, 0);
-	input_set_abs_params(idev, ABS_MT_POSITION_Y, 0, ts->num_y, 0, 0);
-	input_set_abs_params(idev, ABS_MT_TRACKING_ID, 0, MAX_TOUCHES, 0, 0);
-	input_set_abs_params(idev, ABS_X, 0, ts->num_x, 0, 0);
-	input_set_abs_params(idev, ABS_Y, 0, ts->num_y, 0, 0);
-	input_set_abs_params(idev, ABS_MT_TOUCH_MAJOR, 0, 1, 0, 0);
-#else
-	__set_bit(EV_SYN, idev->evbit);
-	input_set_abs_params(idev, ABS_X, 0, ts->num_x, 0, 0);
-	input_set_abs_params(idev, ABS_Y, 0, ts->num_y, 0, 0);
-	input_set_abs_params(idev, ABS_PRESSURE, 0, 1, 0, 0);
-#endif
-
-	input_set_drvdata(idev, ts);
-	return input_register_device(idev);
-}
-
-static void evr_ft5x06_ts_deregister(struct evr_ft5x06_ts_data *ts)
-{
-	if (ts->input) {
-		input_unregister_device(ts->input);
-		input_free_device(ts->input);
-		ts->input = NULL;
+	/* we need to write addr 0x0 to the controller before reading */
+	ret = evr_ft5x0x_i2c_read(ts->client, buf, 1, buf, sizeof(buf));
+	if (ret < 0) {
+		pr_debug("%s: i2c transfer failed \n", __func__);
+		goto out;
 	}
+
+	mode = (buf[0] & 0x70) >> 4;
+	points = buf[2];
+	contact = (buf[3] & 0xC0) >> 6;
+	x = ((buf[3] & 0x0F) << 8) | (buf[4]);
+	y = ((buf[5] & 0x0F) << 8) | (buf[6]);
+	
+#ifdef DEBUG
+	pr_debug("m=%d, p=%d, c=%d, x=%d, y=%d \n",mode, points, contact, x ,y);
+#endif
+	switch (contact) {
+		case 0:
+		case 2:
+			input_report_abs(ts->input_dev, ABS_X, x);
+            input_report_abs(ts->input_dev, ABS_Y, y);
+            input_report_abs(ts->input_dev, ABS_PRESSURE, 255);
+			input_report_key(ts->input_dev, BTN_TOUCH, 1);
+            input_sync(ts->input_dev);
+            break;
+		case 1:
+            input_report_abs(ts->input_dev, ABS_PRESSURE, 0);
+			input_report_key(ts->input_dev, BTN_TOUCH, 0);
+            input_sync(ts->input_dev);
+	}
+
+out:
+	return IRQ_HANDLED;
 }
 
-/* Return 0 if detection is successful, -ENODEV otherwise */
-static int evr_ft5x06_detect(struct i2c_client *client)
+static int evr_ft5x06_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	struct i2c_adapter *adapter = client->adapter;
-	char buffer;
-	struct i2c_msg pkt = {
-		client->addr,
-		I2C_M_RD,
-		sizeof(buffer),
-		&buffer
-	};
-	if (!i2c_check_functionality(adapter, I2C_FUNC_I2C))
-		return -ENODEV;
-	if (i2c_transfer(adapter, &pkt, 1) != 1)
-		return -ENODEV;
-
-	return 0;
-}
-
-static void evr_ft5x06_probe_dt(struct i2c_client *client,
-            struct evr_ft5x06_ts_data *data)
-{
+    int err = 0;
+	struct evr_ft5x0x_ts_data *ft5x0x_ts;
     struct device_node *np = client->dev.of_node;
+    struct input_dev *input_dev;
+	unsigned char uc_reg_value;
+    unsigned char uc_reg_addr;    
 
-    if(np == NULL) {
-        return;
-    }
-
-    of_property_read_u32(np, "swap-x-y", &swap_x_y);
-    of_property_read_u32(np, "max-x", &data->num_x);
-    of_property_read_u32(np, "max-y", &data->num_y);
-}
-
-static int evr_ft5x06_ts_probe(struct i2c_client *client,
-					 const struct i2c_device_id *id)
-{
-	int err = 0;
-	struct evr_ft5x06_ts_data *ts;
-    struct device *dev = &client->dev;
-
-	dev_dbg(dev, "probing for Evervision FT5x06 I2C\n");
-
-    if(evr_ft5x06_detect(client) != 0) {
-       	dev_err(dev, "%s: Could not detect touch screen.\n",
-			client_name);
-		return -ENODEV;
-    }
-
-    ts = kzalloc(sizeof(struct evr_ft5x06_ts_data), GFP_KERNEL);
-	if (!ts) {
-		dev_err(dev, "Couldn't allocate memory for %s\n", client_name);
-		return -ENOMEM;
+    if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+        pr_debug("%s: I2C checked failed\n", __func__);
+		err = -ENODEV;
+		goto exit_check_functionality_failed;
 	}
+
+    ft5x0x_ts = kzalloc(sizeof(struct evr_ft5x0x_ts_data), GFP_KERNEL);
+    if (!ft5x0x_ts) {
+		err = -ENOMEM;
+		goto exit_alloc_data_failed;
+	}
+
+    i2c_set_clientdata(client, ft5x0x_ts);
+    ft5x0x_ts->irq = client->irq;
+	ft5x0x_ts->client = client;
+	// TODO: pull this from the dt
+	ft5x0x_ts->x_max = 2047;
+	ft5x0x_ts->y_max = 2047;
     
-    ts->client = client;
-	ts->irq = client->irq;
-    ts->num_x = X_RES;
-    ts->num_y = Y_RES;
+    err = request_threaded_irq(client->irq, NULL, evr_ft5x0x_ts_interrupt,
+				   IRQF_TRIGGER_LOW | IRQF_ONESHOT, client->name, ft5x0x_ts);
+	if (err < 0) {
+		dev_err(&client->dev, "ft5x0x_probe: request irq failed\n");
+		goto exit_irq_request_failed;
+	}
+	disable_irq(client->irq);
 
-    /* look for dt data */
-    evr_ft5x06_probe_dt(client, ts);
-
-    err = request_threaded_irq(ts->irq, NULL, evr_ft5x06_ts_isr,
-				     IRQF_TRIGGER_LOW | IRQF_ONESHOT,
-				     client_name, ts);
-	if (err) {
-		pr_err("%s: error requesting irq %d\n", __func__, ts->irq);
-		goto err_free_mem;
+    input_dev = input_allocate_device();
+	if (!input_dev) {
+		err = -ENOMEM;
+		dev_err(&client->dev, "failed to allocate input device\n");
+		goto exit_input_dev_alloc_failed;
 	}
 
-	i2c_set_clientdata(client, ts);
-	err = evr_ft5x06_ts_register(ts);
+    ft5x0x_ts->input_dev = input_dev;
+    input_dev->name = TS_NAME;
+
+    set_bit(EV_ABS, input_dev->evbit);
+	set_bit(EV_KEY, input_dev->evbit);
+    set_bit(BTN_TOUCH, input_dev->keybit);
+	set_bit(EV_SYN, input_dev->evbit);
+
+	input_set_abs_params(input_dev, ABS_X, 0, ft5x0x_ts->x_max, 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, ft5x0x_ts->y_max, 0, 0);
+	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 1, 0, 0);
+    
+    err = input_register_device(input_dev);
 	if (err) {
-		pr_err("%s: errorr registering input \n", __func__);
-		goto err_free_mem;
+		dev_err(&client->dev,
+			"ft5x0x_ts_probe: failed to register input device: %s\n",
+			dev_name(&client->dev));
+		goto exit_input_register_device_failed;
 	}
 
-	return 0;
+	/* reset controller */
+	ft5x0x_ts->reset_gpio = of_get_named_gpio(np, "reset-gpio", 0);
+	if (!gpio_is_valid(ft5x0x_ts->reset_gpio)) {
+		pr_debug("invalid reset-gpio \n");
+	} else {
+		err = gpio_request(ft5x0x_ts->reset_gpio, "ft5x06_reset");
+		if (err < 0) {
+			pr_debug("failed to request reset-gpio \n");
+		} else {
+			err = gpio_direction_output(ft5x0x_ts->reset_gpio, 0);
+			if (err < 0) {
+				pr_debug("failed to set reset-gpio as output\n");
+			}
+			msleep(10);
+			gpio_set_value(ft5x0x_ts->reset_gpio, 1);
+			msleep(100);
+		}
+	}
 
-err_free_mem:
-	evr_ft5x06_ts_deregister(ts);
-    free_irq(ts->irq, ts); 
-	kfree(ts);
+    uc_reg_addr = FT5x0x_REG_FW_VER;
+    evr_ft5x0x_i2c_read(client, &uc_reg_addr, 1, &uc_reg_value, 1);
+    dev_dbg(&client->dev, "[FTS] Firmware version = 0x%x\n", uc_reg_value);
 
-    return err;
+    uc_reg_addr = FT5x0x_REG_POINT_RATE;
+    evr_ft5x0x_i2c_read(client, &uc_reg_addr, 1, &uc_reg_value, 1);
+    dev_dbg(&client->dev, "[FTS] report rate is %dHz \n", uc_reg_value * 10);
+
+    enable_irq(client->irq);
+
+    return 0;
+
+exit_input_register_device_failed:
+	input_free_device(input_dev);
+
+exit_input_dev_alloc_failed:
+	free_irq(client->irq, ft5x0x_ts);
+
+exit_irq_request_failed:
+	i2c_set_clientdata(client, NULL);
+	kfree(ft5x0x_ts);
+
+exit_alloc_data_failed:
+exit_check_functionality_failed:
+    return err; 
 }
 
 static int evr_ft5x06_ts_remove(struct i2c_client *client)
 {
-	struct evr_ft5x06_ts_data *ts = i2c_get_clientdata(client);
+    struct evr_ft5x0x_ts_data *ft5x0x_ts;
+    ft5x0x_ts = i2c_get_clientdata(client);
 
-	dev_dbg(&client->dev, "removing Evervision FT5x06 I2C\n");
-	free_irq(client->irq, ts);
-    evr_ft5x06_ts_deregister(ts);
-
-	kfree(ts);
+	input_unregister_device(ft5x0x_ts->input_dev);
+    free_irq(client->irq, ft5x0x_ts);
+	gpio_free(ft5x0x_ts->reset_gpio);
+    kfree(ft5x0x_ts);
+	i2c_set_clientdata(client, NULL);
 
 	return 0;
 }
 
 static const struct i2c_device_id evr_ft5x06_ts_id[] = {
-	{ "evervision", 0 },
-	{ }
+	{ TS_NAME, 0 },
+	{ /* sentinel */}
 };
 MODULE_DEVICE_TABLE(i2c, evr_ft5x06_ts_id);
 
 static struct of_device_id evr_ft5x06_dt_ids[] = {
-	{ .compatible = "evervision" },
+	{ .compatible = TS_NAME },
 	{ /* sentinel */ }
 };
 
 static struct i2c_driver evr_ft5x06_ts_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
-		.name = "evr-ft5x06",
+		.name = TS_NAME,
         .of_match_table = evr_ft5x06_dt_ids,
 	},
 	.id_table = evr_ft5x06_ts_id,
@@ -336,8 +301,28 @@ static struct i2c_driver evr_ft5x06_ts_driver = {
 	.remove   = evr_ft5x06_ts_remove,
 };
 
-module_i2c_driver(evr_ft5x06_ts_driver);
+static int __init evr_ft5x06_ts_init(void)
+{
+	int ret;
+	ret = i2c_add_driver(&evr_ft5x06_ts_driver);
+	if (ret) {
+		pr_debug(KERN_WARNING "Adding %s driver failed "
+		       "(errno = %d)\n", TS_NAME, ret);
+	} else {
+		pr_info("Successfully added driver %s\n", 
+                evr_ft5x06_ts_driver.driver.name);
+	}
+	return ret;
+}
 
-MODULE_AUTHOR("Jeff Horn <jeff@everlook.net>");
+static void __exit evr_ft5x06_ts_exit(void)
+{
+	i2c_del_driver(&evr_ft5x06_ts_driver);
+}
+
+module_init(evr_ft5x06_ts_init);
+module_exit(evr_ft5x06_ts_exit);
+
+MODULE_AUTHOR("Jeff Horn <jeff.horn@reachtech.com>");
 MODULE_DESCRIPTION("Evervision FT5x06 I2C Touchscreen Driver");
 MODULE_LICENSE("GPL");
