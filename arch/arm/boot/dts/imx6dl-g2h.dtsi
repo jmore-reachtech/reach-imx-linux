@@ -253,6 +253,7 @@ reference manual.
                 MX6QDL_PAD_KEY_ROW2__GPIO4_IO11   0x80000000    /* Headphone detect */
                 MX6QDL_PAD_SD4_DAT0__GPIO2_IO08   0x130B0 /* LVDS0_EN */
 				MX6QDL_PAD_SD4_DAT3__GPIO2_IO11   0x130B0 /* LCD PWR_EN */
+                MX6QDL_PAD_EIM_DA12__GPIO3_IO12   0x80000000 /* Boot mode, SD or NOR */
 			>;
 		};
 	};
