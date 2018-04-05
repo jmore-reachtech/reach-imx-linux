@@ -531,6 +531,12 @@ config TOUCHSCREEN_EVR_FT5X06
 	  To compile this driver as a module, choose M here: the
 	  module will be called evr-ft5x06.
 
+config TOUCHSCREEN_EVR_FT5X06_TUNE
+	default n
+	bool "Select for PCAP panels with thicker cover glass" if EXPERT
+	depends on TOUCHSCREEN_EVR_FT5X06
+
+
 config TOUCHSCREEN_EDT_FT5X06
 	tristate "EDT FocalTech FT5x06 I2C Touchscreen support"
 	depends on I2C

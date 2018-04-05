@@ -71,6 +71,34 @@ struct evr_ft5x0x_ts_data {
 #endif
 };
 
+
+int evr_ft5x0x_i2c_write(struct i2c_client *client, int reg_num, int reg_val)
+{
+    int ret = 0;
+
+    u8 regnval[] = {
+		reg_num,
+		reg_val
+	};
+
+    struct i2c_msg pkt = {
+		.addr   = client->addr, 
+        .flags  = 0,
+        .len    = sizeof(regnval), 
+        .buf    = regnval,
+	};
+	
+    ret = i2c_transfer(client->adapter, &pkt, 1);
+	if (ret != 1) {
+		printk(KERN_WARNING "%s: i2c_transfer failed\n", __func__);
+    } else {
+		printk(KERN_DEBUG "%s: set register 0x%02x to 0x%02x\n",
+		       __func__, reg_num, reg_val);
+    }
+
+    return ret;
+}
+
 int evr_ft5x0x_i2c_read(struct i2c_client *client, char *w_buf, int w_len, char *r_buf, int r_len)
 {
 	int ret;
@@ -245,6 +273,14 @@ static int evr_ft5x06_ts_probe(struct i2c_client *client, const struct i2c_devic
     uc_reg_addr = FT5x0x_REG_POINT_RATE;
     evr_ft5x0x_i2c_read(client, &uc_reg_addr, 1, &uc_reg_value, 1);
     dev_dbg(&client->dev, "[FTS] report rate is %dHz \n", uc_reg_value * 10);
+
+#ifdef CONFIG_TOUCHSCREEN_EVR_FT5X06_TUNE
+    /*  tune touch controller sensitivity for coverglass thickness */
+    evr_ft5x0x_i2c_write(client, FT5x0x_REG_THRESHOLD, 0x0c);
+#endif
+    uc_reg_addr = FT5x0x_REG_THRESHOLD;
+    evr_ft5x0x_i2c_read(client, &uc_reg_addr, 1, &uc_reg_value, 1);
+    dev_dbg(&client->dev, "[FTS] touch threshold 0x%x\n", uc_reg_value);
 
     enable_irq(client->irq);
 
