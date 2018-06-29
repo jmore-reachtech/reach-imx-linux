@@ -15,6 +15,18 @@
     aliases {
 		mxcfb0 = &mxcfb1;
 	};
+    
+    lcd@0 {
+        compatible = "fsl,lcd";
+		ipu_id = <0>;
+		disp_id = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ipu1>;
+		lcd-enable-gpio = <&gpio2 11 0>;
+		backlight-enable-gpio = <&gpio2 8 0>;
+		status = "disabled";
+    };
+
     memory {
 		reg = <0x10000000 0x40000000>;
 	};
