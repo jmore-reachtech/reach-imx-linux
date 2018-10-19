@@ -17,11 +17,16 @@
 	model = "Reach i.MX6 Dual Lite Board";
 	compatible = "rd6,imx6dl-rd6", "fsl,imx6dl";
 
-    lcd@0 {
-		status = "okay";
-    };
 };
 
-&mxcfb1 {
+&mxcfb2 {
+    status = "okay";
+};
+
+&focaltech_ts {
+    status = "okay";
+};
+
+&ldb {
     status = "okay";
 };

@@ -9,6 +9,7 @@
  * http://www.opensource.org/licenses/gpl-license.html
  * http://www.gnu.org/copyleft/gpl.html
  */
+#define DEBUG
 
 #include <linux/clk.h>
 #include <linux/err.h>
@@ -18,6 +19,7 @@
 #include <linux/mfd/syscon/imx6q-iomuxc-gpr.h>
 #include <linux/module.h>
 #include <linux/of_device.h>
+#include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/types.h>
@@ -102,6 +104,8 @@ struct ldb_data {
 	struct clk *div_3_5_clk[2];
 	struct clk *div_7_clk[2];
 	struct clk *div_sel_clk[2];
+    int backlight_en_gpio;
+	int disp_en_gpio;
 };
 
 static const struct crtc_mux imx6q_lvds0_crtc_mux[] = {
@@ -545,6 +549,18 @@ static int ldb_enable(struct mxc_dispdrv_handle *mddh,
 	}
 
 	regmap_write(ldb->regmap, ldb->ctrl_reg, ldb->ctrl);
+
+    if (gpio_is_valid(ldb->backlight_en_gpio)) {
+        gpio_set_value(ldb->backlight_en_gpio, 0);
+	}
+    if (gpio_is_valid(ldb->disp_en_gpio)) {
+        gpio_set_value(ldb->disp_en_gpio, 1);
+	}
+    mdelay(300);
+    if (gpio_is_valid(ldb->backlight_en_gpio)) {
+        gpio_set_value(ldb->backlight_en_gpio, 1);
+	}
+
 	return 0;
 }
 
@@ -568,6 +584,15 @@ static void ldb_disable(struct mxc_dispdrv_handle *mddh,
 	}
 
 	regmap_write(ldb->regmap, ldb->ctrl_reg, ldb->ctrl);
+
+    if (gpio_is_valid(ldb->backlight_en_gpio)) {
+        gpio_set_value(ldb->backlight_en_gpio, 0);
+	}
+    if (gpio_is_valid(ldb->backlight_en_gpio)) {
+        gpio_set_value(ldb->disp_en_gpio, 0);
+	}
+    mdelay(100);
+
 	return;
 }
 
@@ -876,6 +901,10 @@ static int ldb_probe(struct platform_device *pdev)
 		dev_err(dev, "failed to know primary channel\n");
 		return -EINVAL;
 	}
+
+    /* get display and backlight enable GPIOS */
+    ldb->disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
+    ldb->backlight_en_gpio = of_get_named_gpio(np, "backlight_en_gpio", 0);
 
 	ldb->mddh = mxc_dispdrv_register(&ldb_drv);
 	mxc_dispdrv_setdata(ldb->mddh, ldb);

@@ -10,16 +10,40 @@
  */
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 
 / {
     aliases {
 		mxcfb0 = &mxcfb1;
+		mxcfb1 = &mxcfb2;
 	};
     
+    mxcfb1: fb@0 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "lcd";
+        interface_pix_fmt = "RGB666";
+		mode_str ="LCD-SVGA";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "disabled";
+    };   
+    
+    mxcfb2: fb@1 {
+		compatible = "fsl,mxc_sdc_fb";
+		disp_dev = "ldb";
+        interface_pix_fmt = "RGB24";
+		default_bpp = <32>;
+		int_clk = <0>;
+		late_init = <0>;
+		status = "disabled";
+    };
+
     lcd@0 {
         compatible = "fsl,lcd";
 		ipu_id = <0>;
 		disp_id = <0>;
+		default_ifmt = "RGB666";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_ipu1>;
 		lcd-enable-gpio = <&gpio2 11 0>;
@@ -54,8 +78,9 @@
 			regulator-always-on;
 		};
         
-        reg_usb_otg_vbus: usb_otg_vbus {
+        reg_usb_otg_vbus: regulator@2 {
 			compatible = "regulator-fixed";
+            reg = <2>;
 			regulator-name = "usb_otg_vbus";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
@@ -114,6 +139,18 @@
 		VDDA-supply = <&reg_2p5v>;
 		VDDIO-supply = <&reg_3p3v>;
 	};
+
+    focaltech_ts: focaltech_ts@38 {
+		compatible = "focaltech,fts";
+		reg = <0x38>;
+		interrupt-parent = <&gpio4>;
+       	interrupts = <5 0>;
+        focaltech,panel-type = <FT5426>;
+        focaltech,reset-gpio = <&gpio7 8 0>;
+        focaltech,irq-gpio = <&gpio4 5 0x0>;
+        focaltech,display-coords =  <0 0 1280 800>;
+		status = "disabled";
+	};
 };
 
 &i2c3 {
@@ -136,6 +173,10 @@
                 MX6QDL_PAD_SD4_DAT3__GPIO2_IO11     0x130B0
                 /* BACKLIGHT_EN */
                 MX6QDL_PAD_SD4_DAT0__GPIO2_IO08     0x130B0
+                /* Focaltech interrupt */
+                MX6QDL_PAD_GPIO_19__GPIO4_IO05      0x80000000
+                /* Focaltech reset */
+                MX6QDL_PAD_SD3_RST__GPIO7_IO08      0x80000000
 			>;
 		};
 
@@ -323,14 +364,8 @@
         ti,debounce-tol = /bits/ 16 <10>;
         ti,debounce-max = /bits/ 16 <10>;
 
-		//ti,x-min = /bits/ 16 <0>;
-		//ti,x-max = /bits/ 16 <8000>;
-		//ti,y-min = /bits/ 16 <0>;
-		//ti,y-max = /bits/ 16 <4800>;
-		//ti,x-plate-ohms = /bits/ 16 <40>;
-		//ti,pressure-max = /bits/ 16 <255>;
-
 		wakeup-source;
+        status = "disabled";
     };
 };
 
@@ -340,6 +375,34 @@
 	phy-mode = "rgmii";
 	fsl,err006687-workaround-present;
 	status = "okay";
+};
+
+&ldb {
+    backlight_en_gpio = <&gpio2 8 0>;
+	disp_en_gpio = <&gpio2 11 0>;
+
+    lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <24>;
+        primary;
+		crtc = "ipu1-di0";
+		status = "okay";
+        
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: hsd100pxn1 {
+				clock-frequency = <60000000>;
+				hactive = <1280>;
+				vactive = <800>;
+				hback-porch = <220>;
+				hfront-porch = <40>;
+				vback-porch = <21>;
+				vfront-porch = <7>;
+				hsync-len = <60>;
+				vsync-len = <10>;
+			};
+		};
+	};
 };
 
 &pwm3 {
@@ -388,6 +451,7 @@
 };
 
 &usbotg {
+    vbus-supply = <&reg_usb_otg_vbus>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg>;
 	disable-over-current;
