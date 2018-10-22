@@ -118,6 +118,14 @@
 		power-supply = <&reg_3p3v>;
 		status = "okay";
 	};
+
+    speaker {
+        compatible = "fsl,rd6-speaker";
+        amp-en-gpio = <&gpio5 31 GPIO_ACTIVE_HIGH>;
+        hp-detect-gpio = <&gpio4 11 GPIO_ACTIVE_HIGH>;
+		audio-codec = <&codec>;
+		status = "okay";
+    };
 };
 
 &audmux {
@@ -177,6 +185,10 @@
                 MX6QDL_PAD_GPIO_19__GPIO4_IO05      0x80000000
                 /* Focaltech reset */
                 MX6QDL_PAD_SD3_RST__GPIO7_IO08      0x80000000
+                /* Speaker amp enable */
+                MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31   0x80000000
+                /* headphone detect */
+                 MX6QDL_PAD_KEY_ROW2__GPIO4_IO11    0x80000000
 			>;
 		};
 
