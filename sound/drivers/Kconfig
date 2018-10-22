@@ -220,4 +220,14 @@ config SND_AC97_POWER_SAVE_DEFAULT
 
 	  See SND_AC97_POWER_SAVE for more details.
 
+config SND_RD6_SPEAKER
+    tristate "Reach onboard speaker"
+    select SND_PCM
+    help
+        Say Y here to include the Reach speaker driver. This driver
+        enables/disables the speaker amplifier.
+
+        To compile this driver as a module, choose M here: the module
+        will be called rd6-speaker.
+
 endif	# SND_DRIVERS
