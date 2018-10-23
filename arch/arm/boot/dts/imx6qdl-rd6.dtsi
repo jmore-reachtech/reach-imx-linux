@@ -134,6 +134,17 @@
 	status = "okay";
 };
 
+&gpmi {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_gpmi_nand2>;
+	status = "ok";
+
+	part@0 {
+		label = "rootfs";
+		reg = <0x0000000 0x20000000>;
+	};
+};
+
 &i2c1 {
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
@@ -232,7 +243,28 @@
 			>;
 	    };
 
-         pinctrl_i2c1: i2c1grp {
+        pinctrl_gpmi_nand2: gpmi-nand-grp {
+            fsl,pins = <
+                MX6QDL_PAD_NANDF_CLE__NAND_CLE     0xb0b1
+                MX6QDL_PAD_NANDF_ALE__NAND_ALE     0xb0b1
+                MX6QDL_PAD_NANDF_WP_B__NAND_WP_B   0xb0b1
+                MX6QDL_PAD_NANDF_RB0__NAND_READY_B 0xb000
+                MX6QDL_PAD_NANDF_CS0__NAND_CE0_B   0xb0b1
+                MX6QDL_PAD_NANDF_CS1__NAND_CE1_B   0xb0b1
+                MX6QDL_PAD_SD4_CMD__NAND_RE_B      0xb0b1
+                MX6QDL_PAD_SD4_CLK__NAND_WE_B      0xb0b1
+                MX6QDL_PAD_NANDF_D0__NAND_DATA00   0xb0b1
+                MX6QDL_PAD_NANDF_D1__NAND_DATA01   0xb0b1
+                MX6QDL_PAD_NANDF_D2__NAND_DATA02   0xb0b1
+                MX6QDL_PAD_NANDF_D3__NAND_DATA03   0xb0b1
+                MX6QDL_PAD_NANDF_D4__NAND_DATA04   0xb0b1
+                MX6QDL_PAD_NANDF_D5__NAND_DATA05   0xb0b1
+                MX6QDL_PAD_NANDF_D6__NAND_DATA06   0xb0b1
+                MX6QDL_PAD_NANDF_D7__NAND_DATA07   0xb0b1
+            >;
+        };
+
+        pinctrl_i2c1: i2c1grp {
 			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT8__I2C1_SDA      0x4001b8b1
 				MX6QDL_PAD_CSI0_DAT9__I2C1_SCL      0x4001b8b1
@@ -354,6 +386,35 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_ecspi1>;
 	status = "okay";
+
+    spiflash: m25p80@2 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "n25q128a13";
+		spi-max-frequency = <20000000>;
+		reg = <2>;
+        status = "okay";
+
+		part0@00000000 {
+			label = "boot";
+			reg = <0x00000000 0x00080000>;
+		};
+
+		part1@00080000 {
+			label = "bootenv";
+			reg = <0x00080000 0x00020000>;
+		};
+
+		part2@000A0000 {
+			label = "genenv";
+			reg = <0x000A0000 0x00040000>;
+		};
+
+		part3@000E0000 {
+			label = "custom";
+			reg = <0x000E0000 0x00F20000>;
+		};
+	};
 
     tsc2046: touch@3 {
 		compatible = "ti,tsc2046";
