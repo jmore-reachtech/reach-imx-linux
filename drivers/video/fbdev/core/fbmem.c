@@ -450,6 +450,11 @@ static void fb_do_show_logo(struct fb_info *info, struct fb_image *image,
 			image->dy -= image->height + 8;
 		}
 	}
+
+    /* now the logo is in the framebuffer, blank the panel */
+    if (info->fbops->fb_blank) {
+        info->fbops->fb_blank(FB_BLANK_UNBLANK, info);
+    }
 }
 
 static int fb_show_logo_line(struct fb_info *info, int rotate,
