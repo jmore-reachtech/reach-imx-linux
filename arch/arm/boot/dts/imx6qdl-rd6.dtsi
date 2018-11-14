@@ -77,14 +77,28 @@
 			regulator-max-microvolt = <3300000>;
 			regulator-always-on;
 		};
-        
-        reg_usb_otg_vbus: regulator@2 {
+
+        reg_usbotg_vbus: regulator@2 {
 			compatible = "regulator-fixed";
             reg = <2>;
-			regulator-name = "usb_otg_vbus";
+			regulator-name = "usbotg_vbus";
 			regulator-min-microvolt = <5000000>;
 			regulator-max-microvolt = <5000000>;
-			gpio = <&gpio1 1 GPIO_ACTIVE_LOW>;
+            pinctrl-names = "default";
+		    pinctrl-0 = <&pinctrl_usbotg_vbus>;
+			gpio = <&gpio4 15 GPIO_ACTIVE_HIGH>;
+			enable-active-high;
+		};
+
+        reg_usbh1_vbus: regulator@3 {
+			compatible = "regulator-fixed";
+            reg = <3>;
+			regulator-name = "usbh1_vbus";
+			regulator-min-microvolt = <5000000>;
+			regulator-max-microvolt = <5000000>;
+			pinctrl-names = "default";
+		    pinctrl-0 = <&pinctrl_usbh1_vbus>;
+            gpio = <&gpio3 31 GPIO_ACTIVE_HIGH>;
 			enable-active-high;
 		};
 	};
@@ -199,7 +213,7 @@
                 /* Speaker amp enable */
                 MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31   0x80000000
                 /* headphone detect */
-                 MX6QDL_PAD_KEY_ROW2__GPIO4_IO11    0x80000000
+                MX6QDL_PAD_KEY_ROW2__GPIO4_IO11     0x80000000
 			>;
 		};
 
@@ -361,9 +375,24 @@
 			>;
 		};
 
+        pinctrl_usbh1_vbus: usbh1_vbusgrp {
+		fsl,pins = <
+                /* USB Power Enable */
+			    MX6QDL_PAD_EIM_D31__GPIO3_IO31		0x1b0b0
+		    >;
+	    };
+
 		pinctrl_usbotg: usbotggrp {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_1__USB_OTG_ID		0x17059
+                /* OTG ID Pin */
+                MX6QDL_PAD_GPIO_1__GPIO1_IO01       0x80000000
+			>;
+		};
+
+        pinctrl_usbotg_vbus: usbotg_vbusgrp {
+			fsl,pins = <
+                /* OTG Power Enable */
+                MX6QDL_PAD_KEY_ROW4__GPIO4_IO15     0x1b0b0
 			>;
 		};
 
@@ -460,21 +489,6 @@
         primary;
 		crtc = "ipu1-di0";
 		status = "okay";
-        
-		display-timings {
-			native-mode = <&timing0>;
-			timing0: hsd100pxn1 {
-				clock-frequency = <60000000>;
-				hactive = <1280>;
-				vactive = <800>;
-				hback-porch = <220>;
-				hfront-porch = <40>;
-				vback-porch = <21>;
-				vfront-porch = <7>;
-				hsync-len = <60>;
-				vsync-len = <10>;
-			};
-		};
 	};
 };
 
@@ -520,11 +534,12 @@
 };
 
 &usbh1 {
+    vbus-supply = <&reg_usbh1_vbus>;
 	status = "okay";
 };
 
 &usbotg {
-    vbus-supply = <&reg_usb_otg_vbus>;
+    vbus-supply = <&reg_usbotg_vbus>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg>;
 	disable-over-current;

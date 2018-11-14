@@ -13,7 +13,7 @@
 #include "imx6qdl-rd6.dtsi"
 
 / {
-    
+ 
 	model = "Reach i.MX6 Dual Lite Board";
 	compatible = "rd6,imx6dl-rd6", "fsl,imx6dl";
 
@@ -29,4 +29,21 @@
 
 &ldb {
     status = "okay";
+
+    lvds-channel@0 {
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: hsd100pxn1 {
+				clock-frequency = <60000000>;
+				hactive = <1280>;
+				vactive = <800>;
+				hback-porch = <220>;
+				hfront-porch = <40>;
+				vback-porch = <21>;
+				vfront-porch = <7>;
+				hsync-len = <60>;
+				vsync-len = <10>;
+			};
+		};
+	};
 };
