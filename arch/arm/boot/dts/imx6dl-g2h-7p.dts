@@ -25,3 +25,7 @@
 &mxcfb1 {
     status = "okay";
 };
+
+&focaltech_ts {
+    status = "okay";
+};
