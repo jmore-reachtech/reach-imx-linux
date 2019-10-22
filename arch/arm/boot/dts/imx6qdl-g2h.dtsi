@@ -46,8 +46,8 @@
 		default_ifmt = "RGB666";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_ipu1>;
-		lcd-enable-gpio = <&gpio2 11 0>;
-		backlight-enable-gpio = <&gpio2 8 0>;
+		lcd-enable-gpio = <&gpio2 3 0>;
+		backlight-enable-gpio = <&gpio2 0 0>;
 		status = "disabled";
     };
 
@@ -126,7 +126,7 @@
     
     backlight_lcd: backlight_lcd {
 		compatible = "pwm-backlight";
-		pwms = <&pwm3 0 5000000>;
+		pwms = <&pwm4 0 5000000>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <7>;
 		power-supply = <&reg_3p3v>;
@@ -260,14 +260,14 @@
 			>;
 		};
 
-		pinctrl_i2c3: i2c3grp {
+	pinctrl_i2c3: i2c3grp {
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_5__I2C3_SCL         0x4001b8b1
 				MX6QDL_PAD_GPIO_16__I2C3_SDA        0x4001b8b1
 			>;
 		};
         
-		pinctrl_i2c4: i2c4grp {
+	pinctrl_i2c4: i2c4grp {
 			fsl,pins = <
 				MX6QDL_PAD_NANDF_WP_B__I2C4_SCL     0x4001b8b1
 				MX6QDL_PAD_NANDF_CS3__I2C4_SDA      0x4001b8b1
@@ -308,13 +308,13 @@
 			>;
 		};
         
-        pinctrl_pwm3: pwm3grp {
+        pinctrl_pwm4: pwm4grp {
 			fsl,pins = <
-				MX6QDL_PAD_NANDF_D1__GPIO2_IO01 0x1b0b1
+				MX6QDL_PAD_SD1_CMD__PWM4_OUT 0x1b0b1
 			>;
 		};
 
-		pinctrl_spdif: spdifgrp {
+	pinctrl_spdif: spdifgrp {
 			fsl,pins = <
 				MX6QDL_PAD_ENET_RXD0__SPDIF_OUT		0x1b0b0
 			>;
@@ -322,8 +322,8 @@
 
         pinctrl_tsc2046_pendown: tsc2046_pendown {
 			fsl,pins = <
-                /* PEN IRQ TSC2056 */
-                MX6QDL_PAD_GPIO_18__GPIO7_IO13      0x130B0
+				/* PEN IRQ TSC2056 */
+				MX6QDL_PAD_GPIO_18__GPIO7_IO13      0x130B0
 			>;
 		};
 		
@@ -492,9 +492,9 @@
 	};
 };
 
-&pwm3 {
+&pwm4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_pwm3>;
+	pinctrl-0 = <&pinctrl_pwm4>;
 	status = "okay";
 };
 
