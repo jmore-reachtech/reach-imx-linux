@@ -123,6 +123,25 @@
 		spdif-controller = <&spdif>;
 		spdif-out;
 	};
+
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_gpio_leds>;
+
+		led0: user1 {
+			label = "user1";
+			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
+			default-state = "on";
+			linux,default-trigger = "heartbeat";
+		};
+
+		led1: user2 {
+			label = "user2";
+			gpios = <&gpio1 16 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+		};
+	};
     
     backlight_lcd: backlight_lcd {
 		compatible = "pwm-backlight";
@@ -213,6 +232,13 @@
 			>;
 		};
 
+		pinctrl_gpio_leds: gpioledsgrp {
+			fsl,pins = <
+				MX6QDL_PAD_NANDF_D1__GPIO2_IO01		0x1b0b0
+				MX6QDL_PAD_SD1_DAT0__GPIO1_IO16		0x1b0b0
+			>;
+		};
+
 		pinctrl_audmux: audmuxgrp {
 			fsl,pins = <
 				MX6QDL_PAD_CSI0_DAT7__AUD3_RXD		0x130b0
@@ -263,7 +289,7 @@
 	pinctrl_i2c3: i2c3grp {
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_5__I2C3_SCL         0x4001b8b1
-				MX6QDL_PAD_GPIO_16__I2C3_SDA        0x4001b8b1
+				MX6QDL_PAD_GPIO_6__I2C3_SDA        0x4001b8b1
 			>;
 		};
         
@@ -323,7 +349,7 @@
         pinctrl_tsc2046_pendown: tsc2046_pendown {
 			fsl,pins = <
 				/* PEN IRQ TSC2056 */
-				MX6QDL_PAD_GPIO_18__GPIO7_IO13      0x130B0
+				MX6QDL_PAD_GPIO_9__GPIO1_IO09      0x130B0
 			>;
 		};
 		
@@ -451,9 +477,9 @@
 		spi-max-frequency = <1000000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_tsc2046_pendown>;
-		interrupt-parent = <&gpio7>;
-		interrupts = <13 0>;	/* GPIO_94 */
-		pendown-gpio = <&gpio7 13 GPIO_ACTIVE_HIGH>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <9 0>;
+		pendown-gpio = <&gpio1 9 GPIO_ACTIVE_HIGH>;
 		vcc-supply = <&reg_3p3v>;
 
         ti,settle-delay-usec = /bits/ 16 <100>; 
