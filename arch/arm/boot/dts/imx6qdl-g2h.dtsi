@@ -354,7 +354,7 @@
         pinctrl_tsc2046_pendown: tsc2046_pendown {
 			fsl,pins = <
 				/* PEN IRQ TSC2056 */
-				MX6QDL_PAD_GPIO_9__GPIO1_IO09      0x130B0
+				MX6QDL_PAD_GPIO_9__GPIO1_IO09      0x1f0B0
 			>;
 		};
 		
