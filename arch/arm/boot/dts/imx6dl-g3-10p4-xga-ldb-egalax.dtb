@@ -30,6 +30,6 @@
 	mode = "sin0";
 	sec_ipu_id = <0>;
 	sec_disp_id = <0>;
-	channel_mapping = "JEIDA";
+	channel_mapping = "SPWG";
 	status = "okay";
 };
