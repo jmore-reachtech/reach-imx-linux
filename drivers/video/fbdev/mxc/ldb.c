@@ -24,6 +24,7 @@
 #include <video/of_videomode.h>
 #include <video/videomode.h>
 #include "mxc_dispdrv.h"
+#include <linux/of_gpio.h>
 
 #define DRIVER_NAME	"ldb"
 
@@ -698,6 +699,10 @@ static int ldb_probe(struct platform_device *pdev)
 	int i, data_width, mapping, child_count = 0;
 	char clkname[16];
 
+	int disp_en_gpio;
+	int backlight_en_gpio;
+	int err;
+
 	ldb = devm_kzalloc(dev, sizeof(*ldb), GFP_KERNEL);
 	if (!ldb)
 		return -ENOMEM;
@@ -875,6 +880,30 @@ static int ldb_probe(struct platform_device *pdev)
 	if (ldb->primary_chno == -1) {
 		dev_err(dev, "failed to know primary channel\n");
 		return -EINVAL;
+	}
+
+	disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
+	if (!gpio_is_valid(disp_en_gpio)) {
+		dev_dbg(&pdev->dev, "get of property disp_en_gpio fail\n");
+		return -ENODEV;
+	}
+	err = devm_gpio_request_one(dev, disp_en_gpio, GPIOF_OUT_INIT_HIGH,
+                    "disp_en_gpio");
+	if (err < 0) {
+	    dev_dbg(&pdev->dev, "request disp enable gpio fail \n");
+		return err;
+	}
+
+	backlight_en_gpio = of_get_named_gpio(np, "backlight_en_gpio", 0);
+	if (!gpio_is_valid(backlight_en_gpio)) {
+		dev_dbg(&pdev->dev, "get of property backlight_en_gpio fail\n");
+		return -ENODEV;
+	}
+	err = devm_gpio_request_one(dev, backlight_en_gpio, GPIOF_OUT_INIT_HIGH,
+					"backlight_en_gpio");
+	if (err < 0) {
+	    dev_dbg(&pdev->dev, "request backlight enable gpio fail \n");
+		return err;
 	}
 
 	ldb->mddh = mxc_dispdrv_register(&ldb_drv);
