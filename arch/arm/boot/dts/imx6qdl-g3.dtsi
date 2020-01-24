@@ -18,9 +18,6 @@
     
 	mxcfb1: fb@0 {
 		compatible = "fsl,mxc_sdc_fb";
-		disp_dev = "lcd";
-		interface_pix_fmt = "RGB666";
-		mode_str ="LCD-SVGA";
 		default_bpp = <32>;
 		int_clk = <0>;
 		late_init = <0>;
@@ -536,16 +533,15 @@
 };
 
 &ldb {
-	backlight_en_gpio = <&gpio2 0 0>;
 	disp_en_gpio = <&gpio2 3 0>;
+	backlight_en_gpio = <&gpio2 0 0>;
+	status = "disabled";
 
 	lvds-channel@0 {
-		fsl,data-mapping = "spwg";
-		fsl,data-width = <24>;
 		primary;
 		crtc = "ipu1-di0";
-		status = "okay";
-	};
+		status = "disabled";
+		};
 };
 
 &pwm4 {
