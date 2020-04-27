@@ -52,9 +52,15 @@ static struct fb_videomode lcdif_modedb[] = {
 	FB_SYNC_CLK_LAT_FALL,
 	FB_VMODE_NONINTERLACED,
 	0,},
-    {
+	{
 	/* 800x480 @ 60 Hz , pixel clk @ 28MHz */
 	"LCD-SVGA", 60, 800, 480, KHZ2PICOS(28000), 100, 100, 56, 15, 15, 10,
+	FB_SYNC_CLK_LAT_FALL,
+	FB_VMODE_NONINTERLACED,
+	0,},
+	{
+	/* 640x480 @ 60 Hz , pixel clk @ 25MHz */
+	"LCD-VGA", 60, 640, 480, KHZ2PICOS(25000), 48, 16, 31, 11, 96, 2,
 	FB_SYNC_CLK_LAT_FALL,
 	FB_VMODE_NONINTERLACED,
 	0,},
