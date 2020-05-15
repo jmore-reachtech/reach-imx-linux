@@ -38,6 +38,7 @@
 #define MX3_PWMCR_DOZEEN		(1 << 24)
 #define MX3_PWMCR_WAITEN		(1 << 23)
 #define MX3_PWMCR_DBGEN			(1 << 22)
+#define MX3_PWMCR_POUTC			(1 << 18)
 #define MX3_PWMCR_CLKSRC_IPG_HIGH	(2 << 16)
 #define MX3_PWMCR_CLKSRC_IPG		(1 << 16)
 #define MX3_PWMCR_SWR			(1 << 3)
@@ -181,6 +182,11 @@ static int imx_pwm_config_v2(struct pwm_chip *chip,
 	if (enable)
 		cr |= MX3_PWMCR_EN;
 
+	if (pwm->args.polarity == PWM_POLARITY_INVERSED) {
+		cr |= MX3_PWMCR_POUTC;
+		dev_dbg(dev, "pwm-imx: setting PWM_POLARITY_INVERSED\n");
+	}
+
 	writel(cr, imx->mmio_base + MX3_PWMCR);
 
 	return 0;
@@ -287,16 +293,19 @@ struct imx_pwm_data {
 	int (*config)(struct pwm_chip *chip,
 		struct pwm_device *pwm, int duty_ns, int period_ns);
 	void (*set_enable)(struct pwm_chip *chip, bool enable);
+	bool polarity_supported;
 };
 
 static struct imx_pwm_data imx_pwm_data_v1 = {
 	.config = imx_pwm_config_v1,
 	.set_enable = imx_pwm_set_enable_v1,
+	.polarity_supported = false,
 };
 
 static struct imx_pwm_data imx_pwm_data_v2 = {
 	.config = imx_pwm_config_v2,
 	.set_enable = imx_pwm_set_enable_v2,
+	.polarity_supported = true,
 };
 
 static const struct of_device_id imx_pwm_dt_ids[] = {
@@ -354,6 +363,12 @@ static int imx_pwm_probe(struct platform_device *pdev)
 	data = of_id->data;
 	imx->config = data->config;
 	imx->set_enable = data->set_enable;
+
+	if (data->polarity_supported) {
+		dev_dbg(&pdev->dev, "pwm supports output inversion\n");
+		imx->chip.of_xlate = of_pwm_xlate_with_flags;
+		imx->chip.of_pwm_n_cells = 3;
+	}
 
 	ret = pwmchip_add(&imx->chip);
 	if (ret < 0)
