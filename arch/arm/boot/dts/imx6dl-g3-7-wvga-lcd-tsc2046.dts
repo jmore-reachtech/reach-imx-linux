@@ -28,5 +28,6 @@
 };
 
 &tsc2046 {
+	ti,pressure-max = /bits/ 16 <600>;
 	status = "okay";
 };
