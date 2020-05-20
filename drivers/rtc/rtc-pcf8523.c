@@ -295,7 +295,7 @@ static int pcf8523_probe(struct i2c_client *client,
 	if (err < 0)
 		return err;
 
-	err = pcf8523_set_pm(client, 0);
+	err = pcf8523_set_pm(client, REG_CONTROL3_PM_VDD);
 	if (err < 0)
 		return err;
 
