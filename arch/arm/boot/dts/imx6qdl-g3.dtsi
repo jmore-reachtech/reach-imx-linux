@@ -130,25 +130,6 @@
 		spdif-out;
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpio_leds>;
-
-		led0: user1 {
-			label = "user1";
-			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
-			default-state = "on";
-			linux,default-trigger = "heartbeat";
-		};
-
-		led1: user2 {
-			label = "user2";
-			gpios = <&gpio1 16 GPIO_ACTIVE_LOW>;
-			default-state = "off";
-		};
-	};
-    
 	backlight_lcd: backlight_lcd {
 		compatible = "pwm-backlight";
 		pwms = <&pwm4 0 5000000>;
@@ -255,27 +236,24 @@
         pinctrl_hog: hoggrp {
 		fsl,pins = <
 			/* SGTL5000 sys_mclk */
-			MX6QDL_PAD_GPIO_0__CCM_CLKO1        0x030b0
+			MX6QDL_PAD_GPIO_0__CCM_CLKO1		0x030b0
 			/* DISPLAY_EN */
-			MX6QDL_PAD_NANDF_D3__GPIO2_IO03     0x130B0
+			MX6QDL_PAD_NANDF_D3__GPIO2_IO03		0x130B0
 			/* BACKLIGHT_EN */
-			MX6QDL_PAD_NANDF_D0__GPIO2_IO00     0x130B0
+			MX6QDL_PAD_NANDF_D0__GPIO2_IO00		0x130B0
 			/* Focaltech interrupt */
-			MX6QDL_PAD_GPIO_19__GPIO4_IO05      0x80000000
+			MX6QDL_PAD_GPIO_19__GPIO4_IO05		0x80000000
 			/* Focaltech reset */
-			MX6QDL_PAD_SD3_RST__GPIO7_IO08      0x80000000
+			MX6QDL_PAD_SD3_RST__GPIO7_IO08		0x80000000
 			/* Speaker amp enable */
-			MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31   0x80000000
+			MX6QDL_PAD_CSI0_DAT13__GPIO5_IO31	0x80000000
 			/* headphone detect */
-			MX6QDL_PAD_KEY_ROW2__GPIO4_IO11     0x80000000
+			MX6QDL_PAD_KEY_ROW2__GPIO4_IO11		0x80000000
 			/* GPIO at J21-4 */
-			MX6QDL_PAD_NANDF_D2__GPIO2_IO02     0x1b0b0
-			>;
-		};
-
-	pinctrl_gpio_leds: gpioledsgrp {
-		fsl,pins = <
+			MX6QDL_PAD_NANDF_D2__GPIO2_IO02		0x1b0b0
+			/* led0 */
 			MX6QDL_PAD_NANDF_D1__GPIO2_IO01		0x1b0b0
+			/* led1 */
 			MX6QDL_PAD_SD1_DAT0__GPIO1_IO16		0x1b0b0
 			>;
 		};
