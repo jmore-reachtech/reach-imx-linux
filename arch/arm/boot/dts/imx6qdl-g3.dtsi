@@ -13,7 +13,6 @@
 / {
 	aliases {
 		mxcfb0 = &mxcfb1;
-		mxcfb1 = &mxcfb2;
 	};
     
 	mxcfb1: fb@0 {
@@ -24,16 +23,6 @@
 		status = "disabled";
 	};   
     
-	mxcfb2: fb@1 {
-		compatible = "fsl,mxc_sdc_fb";
-		disp_dev = "ldb";
-		interface_pix_fmt = "RGB24";
-		default_bpp = <32>;
-		int_clk = <0>;
-		late_init = <0>;
-		status = "disabled";
-	};
-
 	lcd@0 {
 		compatible = "fsl,lcd";
 		ipu_id = <0>;
