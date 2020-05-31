@@ -28,7 +28,6 @@ struct mxc_lcd_platform_data {
 	u32 default_ifmt;
 	u32 ipu_id;
 	u32 disp_id;
-    u32 lcd_enable_gpio;
 	u32 backlight_enable_gpio;
 };
 
@@ -117,20 +116,16 @@ int lcdif_enable (struct mxc_dispdrv_handle *disp,
 	struct mxc_lcd_platform_data *plat_data
 			= lcdif->pdev->dev.platform_data;
 
+	/* briefly turn off the backlight to hide flash during controller reconfiguration */
 	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
-        pr_debug("%s: disable backlight gpio \n", __func__);
-        gpio_set_value(plat_data->backlight_enable_gpio, 0);
+		pr_debug("%s: enable backlight gpio \n", __func__);
+		gpio_set_value(plat_data->backlight_enable_gpio, 0);
 	}
 
-	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
-        pr_debug("%s: enable lcd gpio \n", __func__);
-        gpio_set_value(plat_data->lcd_enable_gpio, 1);
-	}
-
-	mdelay(400);
+	mdelay(200);
 	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
-        pr_debug("%s: enable backlight gpio \n", __func__);
-        gpio_set_value(plat_data->backlight_enable_gpio, 1);
+		pr_debug("%s: enable backlight gpio \n", __func__);
+		gpio_set_value(plat_data->backlight_enable_gpio, 1);
 	}
 
 	return 0;
@@ -145,22 +140,16 @@ void lcdif_disable (struct mxc_dispdrv_handle *disp,
 			= lcdif->pdev->dev.platform_data;
 
 	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
-        pr_debug("%s: disable backlight gpio \n", __func__);
-        gpio_set_value(plat_data->backlight_enable_gpio, 0);
+		pr_debug("%s: disable backlight gpio \n", __func__);
+		gpio_set_value(plat_data->backlight_enable_gpio, 0);
 	}
-
-	if (gpio_is_valid(plat_data->lcd_enable_gpio)) {
-        pr_debug("%s: disable lcd gpio \n", __func__);
-        gpio_set_value(plat_data->lcd_enable_gpio, 0);
-	}
-	mdelay(100);
 }
 
 static struct mxc_dispdrv_driver lcdif_drv = {
 	.name 	= DISPDRV_LCD,
 	.init 	= lcdif_init,
 	.deinit	= lcdif_deinit,
-    .enable = lcdif_enable,
+	.enable = lcdif_enable,
 	.disable = lcdif_disable,
 };
 
@@ -169,7 +158,7 @@ static int lcd_get_of_property(struct platform_device *pdev,
 {
 	struct device_node *np = pdev->dev.of_node;
 	int err;
-	u32 ipu_id, disp_id, lcd_enable, backlight_enable;
+	u32 ipu_id, disp_id, backlight_enable;
 	const char *default_ifmt;
 
 	err = of_property_read_string(np, "default_ifmt", &default_ifmt);
@@ -186,14 +175,6 @@ static int lcd_get_of_property(struct platform_device *pdev,
 	if (err) {
 		dev_dbg(&pdev->dev, "get of property disp_id fail\n");
 		return err;
-	}
-
-    lcd_enable = of_get_named_gpio(np, "lcd-enable-gpio", 0);
-	if (!gpio_is_valid(lcd_enable)) {
-		dev_dbg(&pdev->dev, "get of property lcd-enable-gpio fail\n");
-		return -ENODEV;
-	} else {
-		plat_data->lcd_enable_gpio = lcd_enable;
 	}
 
 	backlight_enable = of_get_named_gpio(np, "backlight-enable-gpio", 0);
