@@ -350,12 +350,6 @@
 			>;
 	    };
         
-        pinctrl_pwm1: pwm1grp {
-		fsl,pins = <
-			MX6QDL_PAD_SD1_DAT3__PWM1_OUT 0x1b0b1
-			>;
-		};
-        
         pinctrl_pwm4: pwm4grp {
 		fsl,pins = <
 			MX6QDL_PAD_SD1_CMD__PWM4_OUT 0x1b0b1
