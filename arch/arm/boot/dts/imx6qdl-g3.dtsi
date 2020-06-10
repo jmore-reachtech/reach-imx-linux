@@ -43,7 +43,7 @@
 		mclk_source = <0>;
 		mipi_camera = <1>;
 		default_input = <1>;
-		status = "okay";
+		status = "disabled";
 	};
 
 
@@ -196,6 +196,7 @@
 		mclk = <25000000>;
 		mclk_source = <0>;
 		extended-buffer;
+		status = "disabled";
 	};
 };
 
