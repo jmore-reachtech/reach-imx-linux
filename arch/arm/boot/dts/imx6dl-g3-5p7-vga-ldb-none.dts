@@ -1,0 +1,56 @@
+/*
+ * Copyright 2020 Reach Technology.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
+/dts-v1/;
+#include "imx6dl.dtsi"
+#include "imx6qdl-g3.dtsi"
+
+/ {
+    
+	model = "Reach i.MX6 G3 Board, 5.7 inch resistive touchscreen";
+	compatible = "rd6,imx6dl-rd6", "fsl,imx6dl";
+
+	mxcfb1: fb@0 {
+		disp_dev = "ldb";
+		interface_pix_fmt = "RGB666";
+		status = "okay";
+	};
+};
+
+&ldb {
+	backlight-delay = <400>;
+	status = "okay";
+
+	lvds-channel@0 {
+		fsl,data-mapping = "spwg";
+		fsl,data-width = <18>;
+		status = "okay";
+
+		display-timings {
+			native-mode = <&timing0>;
+			timing0: vga {
+				clock-frequency = <25175000>;
+				hactive = <640>;
+				vactive = <480>;
+				hback-porch = <16>;
+				hfront-porch = <48>;
+				vback-porch = <11>;
+				vfront-porch = <31>;
+				hsync-len = <96>;
+				vsync-len = <2>;
+				de-active = <1>;
+				pixelclk-active = <0>;
+			};
+		};
+	};
+};
+
+&tsc2046 {
+	ti,pressure-max = /bits/ 16 <800>;
+	status = "okay";
+};
