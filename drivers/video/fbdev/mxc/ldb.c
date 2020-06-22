@@ -85,7 +85,14 @@ struct ldb_chan {
 	bool online;
 };
 
+struct ldb_platform_data {
+	u32 backlight_enable_gpio;
+	u32 backlight_delay;
+	bool first_enable;
+};
+
 struct ldb_data {
+	struct platform_device *pdev;
 	struct regmap *regmap;
 	struct device *dev;
 	struct mxc_dispdrv_handle *mddh;
@@ -507,6 +514,8 @@ static int ldb_enable(struct mxc_dispdrv_handle *mddh,
 	struct ldb_data *ldb = mxc_dispdrv_getdata(mddh);
 	struct ldb_chan chan;
 	struct device *dev = ldb->dev;
+	struct ldb_platform_data *plat_data
+			= ldb->pdev->dev.platform_data;
 	struct bus_mux bus_mux;
 	int ret = 0, id = 0, chno, other_chno;
 
@@ -546,6 +555,24 @@ static int ldb_enable(struct mxc_dispdrv_handle *mddh,
 	}
 
 	regmap_write(ldb->regmap, ldb->ctrl_reg, ldb->ctrl);
+
+	/* don't enable backlight on first call to this function */
+	if (plat_data->first_enable) {
+		plat_data->first_enable = false;
+
+	} else {
+		/* briefly turn off the backlight to hide flash during controller reconfiguration */
+		if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+			pr_debug("%s: disable backlight enable gpio \n", __func__);
+			gpio_set_value(plat_data->backlight_enable_gpio, 0);
+		}
+		mdelay(plat_data->backlight_delay);
+		if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+			pr_debug("%s: enable backlight enable gpio \n", __func__);
+			gpio_set_value(plat_data->backlight_enable_gpio, 1);
+		}
+	}
+
 	return 0;
 }
 
@@ -553,7 +580,14 @@ static void ldb_disable(struct mxc_dispdrv_handle *mddh,
 		       struct fb_info *fbi)
 {
 	struct ldb_data *ldb = mxc_dispdrv_getdata(mddh);
+	struct ldb_platform_data *plat_data
+			= ldb->pdev->dev.platform_data;
 	int ret, chno, other_chno;
+
+	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+		pr_debug("%s: disable backlight enable gpio \n", __func__);
+		gpio_set_value(plat_data->backlight_enable_gpio, 0);
+	}
 
 	ret = find_ldb_chno(ldb, fbi, &chno);
 	if (ret < 0)
@@ -699,13 +733,19 @@ static int ldb_probe(struct platform_device *pdev)
 	int i, data_width, mapping, child_count = 0;
 	char clkname[16];
 
-	int disp_en_gpio;
-	int backlight_en_gpio;
 	int err;
+	struct ldb_platform_data *plat_data;
 
 	ldb = devm_kzalloc(dev, sizeof(*ldb), GFP_KERNEL);
 	if (!ldb)
 		return -ENOMEM;
+
+	plat_data = devm_kzalloc(&pdev->dev,
+				sizeof(struct ldb_platform_data),
+				GFP_KERNEL);
+	if (!plat_data)
+		return -ENOMEM;
+	pdev->dev.platform_data = plat_data;
 
 	ldb->regmap = syscon_regmap_lookup_by_phandle(np, "gpr");
 	if (IS_ERR(ldb->regmap)) {
@@ -714,6 +754,7 @@ static int ldb_probe(struct platform_device *pdev)
 	}
 
 	ldb->dev = dev;
+	ldb->pdev = pdev;
 	ldb->bus_mux_num = ldb_info->bus_mux_num;
 	ldb->buses = ldb_info->buses;
 	ldb->ctrl_reg = ldb_info->ctrl_reg;
@@ -882,27 +923,18 @@ static int ldb_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	disp_en_gpio = of_get_named_gpio(np, "disp_en_gpio", 0);
-	if (!gpio_is_valid(disp_en_gpio)) {
-		dev_dbg(&pdev->dev, "get of property disp_en_gpio fail\n");
+	plat_data->backlight_enable_gpio = of_get_named_gpio(np, "backlight-enable-gpio", 0);
+	if (!gpio_is_valid(plat_data->backlight_enable_gpio)) {
+		dev_err(&pdev->dev, "get of property backlight-enable-gpio fail\n");
 		return -ENODEV;
-	}
-	err = devm_gpio_request_one(dev, disp_en_gpio, GPIOF_OUT_INIT_HIGH,
-                    "disp_en_gpio");
-	if (err < 0) {
-	    dev_dbg(&pdev->dev, "request disp enable gpio fail \n");
-		return err;
+	} else {
+		gpio_direction_output(plat_data->backlight_enable_gpio, 0);
+		plat_data->first_enable = true;
 	}
 
-	backlight_en_gpio = of_get_named_gpio(np, "backlight_en_gpio", 0);
-	if (!gpio_is_valid(backlight_en_gpio)) {
-		dev_dbg(&pdev->dev, "get of property backlight_en_gpio fail\n");
-		return -ENODEV;
-	}
-	err = devm_gpio_request_one(dev, backlight_en_gpio, GPIOF_OUT_INIT_HIGH,
-					"backlight_en_gpio");
-	if (err < 0) {
-	    dev_dbg(&pdev->dev, "request backlight enable gpio fail \n");
+	err = of_property_read_u32(np, "backlight-delay", &plat_data->backlight_delay);
+	if (err) {
+		dev_err(&pdev->dev, "get of property backlight-delay fail\n");
 		return err;
 	}
 
