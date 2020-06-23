@@ -29,6 +29,8 @@ struct mxc_lcd_platform_data {
 	u32 ipu_id;
 	u32 disp_id;
 	u32 backlight_enable_gpio;
+	u32 backlight_delay;
+	bool first_enable;
 };
 
 struct mxc_lcdif_data {
@@ -116,16 +118,21 @@ int lcdif_enable (struct mxc_dispdrv_handle *disp,
 	struct mxc_lcd_platform_data *plat_data
 			= lcdif->pdev->dev.platform_data;
 
-	/* briefly turn off the backlight to hide flash during controller reconfiguration */
-	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
-		pr_debug("%s: enable backlight gpio \n", __func__);
-		gpio_set_value(plat_data->backlight_enable_gpio, 0);
-	}
+	/* don't enable backlight on first call to this function */
+	if (plat_data->first_enable) {
+		plat_data->first_enable = false;
 
-	mdelay(200);
-	if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
-		pr_debug("%s: enable backlight gpio \n", __func__);
-		gpio_set_value(plat_data->backlight_enable_gpio, 1);
+	} else {
+		/* briefly turn off the backlight to hide flash during controller reconfiguration */
+		if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+			pr_debug("%s: disable backlight gpio \n", __func__);
+			gpio_set_value(plat_data->backlight_enable_gpio, 0);
+		}
+		mdelay(plat_data->backlight_delay);
+		if (gpio_is_valid(plat_data->backlight_enable_gpio)) {
+			pr_debug("%s: enable backlight gpio \n", __func__);
+			gpio_set_value(plat_data->backlight_enable_gpio, 1);
+		}
 	}
 
 	return 0;
@@ -158,7 +165,7 @@ static int lcd_get_of_property(struct platform_device *pdev,
 {
 	struct device_node *np = pdev->dev.of_node;
 	int err;
-	u32 ipu_id, disp_id, backlight_enable;
+	u32 ipu_id, disp_id;
 	const char *default_ifmt;
 
 	err = of_property_read_string(np, "default_ifmt", &default_ifmt);
@@ -177,12 +184,19 @@ static int lcd_get_of_property(struct platform_device *pdev,
 		return err;
 	}
 
-	backlight_enable = of_get_named_gpio(np, "backlight-enable-gpio", 0);
-	if (!gpio_is_valid(backlight_enable)) {
-		dev_dbg(&pdev->dev, "get of property backlight-enable-gpio fail\n");
+	plat_data->backlight_enable_gpio = of_get_named_gpio(np, "backlight-enable-gpio", 0);
+	if (!gpio_is_valid(plat_data->backlight_enable_gpio)) {
+		dev_err(&pdev->dev, "get of property backlight-enable-gpio fail\n");
 		return -ENODEV;
 	} else {
-		plat_data->backlight_enable_gpio = backlight_enable;
+		gpio_direction_output(plat_data->backlight_enable_gpio, 0);
+		plat_data->first_enable = true;
+	}
+
+	err = of_property_read_u32(np, "backlight-delay", &plat_data->backlight_delay);
+	if (err) {
+		dev_err(&pdev->dev, "get of property backlight-delay fail\n");
+		return err;
 	}
 
 	plat_data->ipu_id = ipu_id;
