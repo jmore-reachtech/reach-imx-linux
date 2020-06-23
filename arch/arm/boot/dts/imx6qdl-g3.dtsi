@@ -33,6 +33,7 @@
 		pinctrl-0 = <&pinctrl_ipu1>;
 		lcd-enable-gpio = <&gpio2 3 0>;
 		backlight-enable-gpio = <&gpio2 0 0>;
+		backlight-delay = <200>;
 		status = "disabled";
 	};
 
@@ -497,7 +498,8 @@
 
 &ldb {
 	disp_en_gpio = <&gpio2 3 0>;
-	backlight_en_gpio = <&gpio2 0 0>;
+	backlight-enable-gpio = <&gpio2 0 0>;
+	backlight-delay = <10>;
 	status = "disabled";
 
 	lvds-channel@0 {
