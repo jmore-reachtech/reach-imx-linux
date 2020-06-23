@@ -27,6 +27,7 @@
 };
 
 &ldb {
+	backlight-delay = <200>;
 	status = "okay";
 
 	lvds-channel@0 {
