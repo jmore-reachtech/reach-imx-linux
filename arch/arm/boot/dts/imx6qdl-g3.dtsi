@@ -175,6 +175,19 @@
 		focaltech,display-coords =  <0 0 1280 800>;
 		status = "disabled";
 	};
+
+	gpio: gpio@3e {
+		compatible = "nxp,pca9534";
+		reg = <0x3e>;
+		interrupt-parent = <&gpio6>;
+		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-line-names =
+			"J22-GP0", "J22-GP1", "J22-GP2", "J22-GP3", "J22-GP4", "J22-GP5", "J22-GP6", "J22-GP7";
+	};
 };
 
 &i2c2 {
@@ -246,6 +259,8 @@
 			MX6QDL_PAD_NANDF_D1__GPIO2_IO01		0x1b0b0
 			/* led1 */
 			MX6QDL_PAD_SD1_DAT0__GPIO1_IO16		0x1b0b0
+			/* gpio expander interrupt */
+			MX6QDL_PAD_NANDF_CS0__GPIO6_IO11	0x1f0b0
 			>;
 		};
 
