@@ -226,9 +226,9 @@
 	pinctrl-0 = <&pinctrl_i2c4>;
 	status = "okay";
 
-	rtc: pcf8523@68 {
-		compatible = "nxp,pcf8523";
-		reg = <0x68>;
+	rtc: pcf2129@51 {
+		compatible = "nxp,pcf2129";
+		reg = <0x51>;
 	};
 };
 
